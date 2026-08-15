@@ -28,24 +28,24 @@ where
         Ok(self.cache.get(key))
     }
 
-    async fn set(&self, key: &K, value: V)->Result<(), Box<dyn Error>> {
+    async fn set(&self, key: &K, value: V) -> Result<(), Box<dyn Error>> {
         self.cache.insert(key.clone(), value);
         Ok(())
     }
 
-    async fn delete(&self, key: &K) ->Result<(), Box<dyn Error>>{
+    async fn delete(&self, key: &K) -> Result<(), Box<dyn Error>> {
         self.cache.invalidate(key);
         Ok(())
     }
 
-    async fn clear(&self) ->Result<(), Box<dyn Error>>{
+    async fn clear(&self) -> Result<(), Box<dyn Error>> {
         self.cache.invalidate_all();
         Ok(())
     }
 }
 
-impl<K,V> From<MokaCache<K,V>> for DefaultCache<K,V>{
-    fn from(cache: MokaCache<K,V>)->Self{
-        Self{cache}
+impl<K, V> From<MokaCache<K, V>> for DefaultCache<K, V> {
+    fn from(cache: MokaCache<K, V>) -> Self {
+        Self { cache }
     }
 }
