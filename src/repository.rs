@@ -15,7 +15,9 @@ pub trait Repository: Send + Sync {
     type Entity: Entity;
     fn database(&self) -> &PgPool;
 
-    fn cache(&self) -> Arc<dyn Cache<<<Self as Repository>::Entity as Entity>::Id, Self::Entity>>;
+    fn cache(
+        &self,
+    ) -> Arc<dyn Cache<<<Self as Repository>::Entity as Entity>::Id, Self::Entity> + Send + Sync>;
 
     /// Begin a transaction against this repository's pool. Used by the
     /// default `Service::create`/`update`/`delete` implementations so a
@@ -121,11 +123,13 @@ pub trait Repository: Send + Sync {
     /// there's no open transaction that could still roll back and turn
     /// this into a phantom entry.
     async fn retrieve(&self, id: &<Self::Entity as Entity>::Id) -> ApiResult<Self::Entity> {
-        if let Some(hit) = self.cache().get(id) {
+        if let Ok(Some(hit)) = self.cache().get(&id).await {
             return Ok(hit);
         }
         let entity = retrieve_row::<_, Self::Entity>(self.database(), id).await?;
-        self.cache().set(entity.id(), entity.clone());
+        if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
+            tracing::warn!("failed to set cache: {e}");
+        };
         Ok(entity)
     }
 
@@ -135,7 +139,9 @@ pub trait Repository: Send + Sync {
     async fn create(&self, dto: &<Self::Entity as Entity>::CreateDto) -> ApiResult<Self::Entity> {
         let cols = Self::insert_columns(dto)?;
         let entity = insert_row::<_, Self::Entity>(self.database(), cols).await?;
-        self.cache().set(entity.id(), entity.clone());
+        if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
+            tracing::warn!("failed to set cache: {e}");
+        };
         Ok(entity)
     }
 
@@ -168,7 +174,9 @@ pub trait Repository: Send + Sync {
     ) -> ApiResult<Self::Entity> {
         let cols = Self::update_columns(dto)?;
         let entity = update_row::<_, Self::Entity>(self.database(), id, cols).await?;
-        self.cache().set(entity.id(), entity.clone());
+        if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
+            tracing::warn!("failed to set cache: {e}");
+        };
         Ok(entity)
     }
 
@@ -196,7 +204,9 @@ pub trait Repository: Send + Sync {
     ) -> ApiResult<Self::Entity> {
         let cols = Self::update_columns(dto)?;
         let entity = update_row::<_, Self::Entity>(&mut **tx, id, cols).await?;
-        self.cache().delete(id);
+        if let Err(e) = self.cache().delete(id).await {
+            tracing::error!("failed to invalidate cache: {e}");
+        };
         Ok(entity)
     }
 
@@ -204,7 +214,9 @@ pub trait Repository: Send + Sync {
     /// entry here is correctly ordered after the durable delete.
     async fn delete(&self, id: &<Self::Entity as Entity>::Id) -> ApiResult<()> {
         delete_row::<_, Self::Entity>(self.database(), id).await?;
-        self.cache().delete(id);
+        if let Err(e) = self.cache().delete(id).await {
+            tracing::error!("failed to invalidate cache: {e}");
+        };
         Ok(())
     }
 
@@ -217,7 +229,9 @@ pub trait Repository: Send + Sync {
         id: &<Self::Entity as Entity>::Id,
     ) -> ApiResult<()> {
         delete_row::<_, Self::Entity>(&mut **tx, id).await?;
-        self.cache().delete(id);
+        if let Err(e) = self.cache().delete(id).await {
+            tracing::error!("failed to invalidate cache: {e}");
+        };
         Ok(())
     }
 
@@ -484,7 +498,6 @@ where
     Ok(())
 }
 
-
 pub struct DefaultRepo<E: Entity> {
     db: PgPool,
     cache: Arc<DefaultCache<E::Id, E>>,
@@ -501,7 +514,7 @@ impl<E: Entity> From<PgPool> for DefaultRepo<E> {
 
 impl<E: Entity> Repository for DefaultRepo<E> {
     type Entity = E;
-    fn cache(&self) -> Arc<dyn super::cache::Cache<<E as Entity>::Id, E> + 'static> {
+    fn cache(&self) -> Arc<dyn super::cache::Cache<E::Id, E> + Send + Sync> {
         self.cache.clone()
     }
     fn database(&self) -> &PgPool {

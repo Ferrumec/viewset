@@ -1,11 +1,6 @@
-pub trait Cache<K, V> {
-    fn get(&self, key: &K) -> Option<V>;
-    fn set(&self, key: K, value: V);
-    fn delete(&self, key: &K);
-    fn clear(&self);
-}
-
+pub use actixutils::Store as Cache;
 use moka::sync::Cache as MokaCache;
+use std::error::Error;
 
 pub struct DefaultCache<K, V> {
     cache: MokaCache<K, V>,
@@ -23,24 +18,34 @@ where
     }
 }
 
+#[async_trait::async_trait]
 impl<K, V> Cache<K, V> for DefaultCache<K, V>
 where
     K: Eq + std::hash::Hash + Clone + Send + Sync + 'static,
     V: Clone + Send + Sync + 'static,
 {
-    fn get(&self, key: &K) -> Option<V> {
-        self.cache.get(key)
+    async fn get(&self, key: &K) -> Result<Option<V>, Box<dyn Error>> {
+        Ok(self.cache.get(key))
     }
 
-    fn set(&self, key: K, value: V) {
-        self.cache.insert(key, value);
+    async fn set(&self, key: &K, value: V)->Result<(), Box<dyn Error>> {
+        self.cache.insert(key.clone(), value);
+        Ok(())
     }
 
-    fn delete(&self, key: &K) {
+    async fn delete(&self, key: &K) ->Result<(), Box<dyn Error>>{
         self.cache.invalidate(key);
+        Ok(())
     }
 
-    fn clear(&self) {
+    async fn clear(&self) ->Result<(), Box<dyn Error>>{
         self.cache.invalidate_all();
+        Ok(())
+    }
+}
+
+impl<K,V> From<MokaCache<K,V>> for DefaultCache<K,V>{
+    fn from(cache: MokaCache<K,V>)->Self{
+        Self{cache}
     }
 }
