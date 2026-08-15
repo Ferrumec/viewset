@@ -1,0 +1,19 @@
+[package]
+name = "viewset"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = "4.14.1"
+actixutils = "0.5.1"
+async-trait = "0.1.92"
+chrono = "0.4.45"
+moka = { version = "0.12.16", features = ["sync"] }
+rust_decimal = "1.42.1"
+serde = "1.0.229"
+serde_json = "1.0.151"
+sqlx = { version = "0.9", features = ["postgres",  "uuid","chrono","rust_decimal"] }
+thiserror = "2.0.20"
+tracing = "0.1.44"
+uuid = "1.24.0"
+viewset-macros = "0.1.2"
