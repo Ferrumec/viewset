@@ -2467,9 +2467,9 @@ dependencies = [
 
 [[package]]
 name = "viewset-macros"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c0c775325ad1bcb8fe638a3b9596c22dcdf2def1ec907e78fb35037485d31c7"
+checksum = "e8b37fcd1962b0f390dc8f9d5dbea54570c13f88542bd9b65c7139bb5a6caee5"
 dependencies = [
  "proc-macro2",
  "quote",
