@@ -22,7 +22,7 @@ mod service;
 mod sql;
 #[allow(clippy::module_inception)]
 mod viewset;
-pub use cache::{Cache, DefaultCache};
+pub use cache::DefaultCache;
 pub use context::RequestContext;
 pub use entity::Entity;
 pub use error::ApiError;

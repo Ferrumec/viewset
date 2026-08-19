@@ -1,4 +1,4 @@
-pub use actixutils::Store as Cache;
+use actixutils::Store as Cache;
 use moka::sync::Cache as MokaCache;
 use std::error::Error;
 

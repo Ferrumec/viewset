@@ -1,4 +1,5 @@
-use super::cache::{Cache, DefaultCache};
+use super::cache::DefaultCache;
+use actixutils::Store as Cache;
 use super::entity::Entity;
 use super::error::{ApiError, ApiResult};
 use super::pagination::{PaginationParams, QueryParams, SortDirection};
@@ -514,7 +515,7 @@ impl<E: Entity> From<PgPool> for DefaultRepo<E> {
 
 impl<E: Entity> Repository for DefaultRepo<E> {
     type Entity = E;
-    fn cache(&self) -> Arc<dyn super::cache::Cache<E::Id, E> + Send + Sync> {
+    fn cache(&self) -> Arc<dyn Cache<E::Id, E> + Send + Sync> {
         self.cache.clone()
     }
     fn database(&self) -> &PgPool {
