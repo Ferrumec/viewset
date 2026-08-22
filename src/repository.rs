@@ -1,7 +1,8 @@
-use super::cache::{Cache, DefaultCache};
+use super::cache::DefaultCache;
+use actixutils::{Filters,Store as Cache};
 use super::entity::Entity;
 use super::error::{ApiError, ApiResult};
-use super::pagination::{PaginationParams, QueryParams, SortDirection};
+use super::pagination::{PaginationParams, SortDirection};
 use super::sql::{SqlType, SqlValue};
 use async_trait::async_trait;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
@@ -56,7 +57,7 @@ pub trait Repository: Send + Sync {
         fields_from_dto::<Self::Entity>(dto)
     }
 
-    async fn list(&self, query: &QueryParams) -> ApiResult<(Vec<Self::Entity>, i64)> {
+    async fn list(&self, query: &Filters) -> ApiResult<(Vec<Self::Entity>, i64)> {
         let pagination = PaginationParams::from_query(query);
         let e = <Self::Entity as Entity>::TABLE;
 
@@ -79,7 +80,7 @@ pub trait Repository: Send + Sync {
         push_filters::<Self::Entity>(&mut select_qb, query, &mut select_has_where);
         push_filters::<Self::Entity>(&mut count_qb, query, &mut count_has_where);
 
-        if let Some(sort) = &query.sort {
+        if let Some(sort) = &query.get("sort") {
             let clauses: Vec<String> = PaginationParams::parse_sort(sort)
                 .into_iter()
                 .filter(|(field, _)| <Self::Entity as Entity>::SORTABLE.contains(&field.as_str()))
@@ -351,10 +352,10 @@ fn push_soft_delete_clause<E: Entity>(qb: &mut QueryBuilder<Postgres>, has_where
 
 fn push_filters<E: Entity>(
     qb: &mut QueryBuilder<Postgres>,
-    query: &QueryParams,
+    query: &Filters,
     has_where: &mut bool,
 ) {
-    for (field, value) in &query.filters {
+    for (field, value) in query.iter() {
         if !E::FILTERABLE.contains(&field.as_str()) {
             continue; // silently ignore unknown/forbidden filter keys
         }
@@ -363,7 +364,7 @@ fn push_filters<E: Entity>(
         qb.push_bind(value.clone());
         *has_where = true;
     }
-    if let Some(search) = &query.search
+    if let Some(search) = &query.get("search")
         && !search.is_empty()
         && !E::SEARCHABLE.is_empty()
     {
@@ -514,7 +515,7 @@ impl<E: Entity> From<PgPool> for DefaultRepo<E> {
 
 impl<E: Entity> Repository for DefaultRepo<E> {
     type Entity = E;
-    fn cache(&self) -> Arc<dyn super::cache::Cache<E::Id, E> + Send + Sync> {
+    fn cache(&self) -> Arc<dyn Cache<E::Id, E> + Send + Sync> {
         self.cache.clone()
     }
     fn database(&self) -> &PgPool {

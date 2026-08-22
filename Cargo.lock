@@ -187,9 +187,9 @@ dependencies = [
 
 [[package]]
 name = "actixutils"
-version = "0.6.1"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47a1c8ffcea74ecac565b71d9bb8d33231a0f87584f90943ea25b88ba3262efd"
+checksum = "58079cd1ed21e082aa5d6f4c8ddd7432de6a50a99c75d91742c6f6dd1f8eb0da"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2447,7 +2447,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "viewset"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "actix-web",
  "actixutils",
@@ -2467,9 +2467,9 @@ dependencies = [
 
 [[package]]
 name = "viewset-macros"
-version = "0.1.2"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c0c775325ad1bcb8fe638a3b9596c22dcdf2def1ec907e78fb35037485d31c7"
+checksum = "8241e0d6622394934311eb6258a19077ccc156f6da5d7eb8356b2dcbccb5a0f1"
 dependencies = [
  "proc-macro2",
  "quote",

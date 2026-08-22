@@ -1,13 +1,13 @@
 [package]
 name = "viewset"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
-description = “A Rust, Actix Web–based resource framework that provides convention-driven CRUD APIs over database entities, with layered ViewSet → Service → Repository architecture, validation/hooks, pagination, filtering, transactions, and caching.”
-license = MIT
+description = "A Rust, Actix Web–based resource framework that provides convention-driven CRUD APIs over database entities, with layered ViewSet → Service → Repository architecture, validation/hooks, pagination, filtering, transactions, and caching."
+license = "MIT"
 
 [dependencies]
 actix-web = "4.14.1"
-actixutils = "0.6.1"
+actixutils = "0.6.3"
 async-trait = "0.1.92"
 chrono = "0.4.45"
 moka = { version = "0.12.16", features = ["sync"] }
@@ -18,5 +18,5 @@ sqlx = { version = "0.9", features = ["postgres",  "uuid","chrono","rust_decimal
 thiserror = "2.0.20"
 tracing = "0.1.44"
 uuid = "1.24.0"
-viewset-macros = "0.1.2"
+viewset-macros = "0.1.4"
 redis = { version = "1", features = ["tokio-comp"] }
