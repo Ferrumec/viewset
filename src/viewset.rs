@@ -1,8 +1,8 @@
 use super::entity::Entity;
 use super::error::ApiError;
-use super::pagination::QueryParams;
 use super::service::Service;
 use actix_web::{HttpResponse, web};
+use actixutils::Filters as QueryParams;
 use sqlx::PgPool;
 use std::str::FromStr;
 
@@ -60,7 +60,7 @@ pub trait ViewSet: Send + Sync + 'static {
         Self: Sized,
     {
         let mut query = q.into_inner();
-        query.filters = f.0;
+        query.extend(f.0);
         async move {
             let page = self.service().list(query).await?;
             Ok(HttpResponse::Ok().json(page))

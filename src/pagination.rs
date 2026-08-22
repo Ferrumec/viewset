@@ -1,5 +1,6 @@
+
+use actixutils::Filters;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub enum SortDirection {
@@ -9,48 +10,6 @@ pub enum SortDirection {
     Desc,
 }
 
-/// Raw query-string params, parsed by the ViewSet, validated by the
-/// Repository against `Entity::SORTABLE` / `SEARCHABLE` / `FILTERABLE`.
-#[derive(Debug, Clone, Deserialize)]
-pub struct QueryParams {
-    #[serde(default)]
-    pub page: Option<u32>,
-    #[serde(default)]
-    pub page_size: Option<u32>,
-    /// e.g. "?sort=-created_at,name" -> [("created_at", Desc), ("name", Asc)]
-    #[serde(default)]
-    pub sort: Option<String>,
-    #[serde(default)]
-    pub search: Option<String>,
-    /// Arbitrary `field=value` pairs not otherwise consumed above.
-    #[serde(flatten)]
-    pub filters: HashMap<String, String>,
-    /// Comma separated field allow-list for sparse responses.
-    ///
-    /// Design decision: **not consumed by any default `Repository`/
-    /// `Service` method.** Sparse fieldsets are genuinely hard to do
-    /// generically — the default `SELECT` already commits to
-    /// `Entity::COLUMNS` before this would ever apply, and honoring it
-    /// well means touching `ResponseDto` serialization too. This field
-    /// exists so it's parsed once and available if/when a developer
-    /// overrides `handle_list`/`after_list` (or similar) to implement
-    /// sparse fields themselves, rather than every override needing to
-    /// re-parse the query string. Absent an override, a client sending
-    /// `?fields=...` gets the full response with no error and no
-    /// indication the parameter was ignored — that's expected, not a bug.
-    #[serde(default)]
-    pub fields: Option<String>,
-    /// Comma separated relations to eager-load.
-    ///
-    /// Same status as `fields` above: parsed, never applied by any
-    /// default method. Eager-loading depends entirely on an entity's
-    /// specific relations, which this crate has no generic model for.
-    /// Reserved for developers who override the relevant hook/handler to
-    /// implement it themselves.
-    #[serde(default)]
-    pub expand: Option<String>,
-}
-
 pub struct PaginationParams {
     pub limit: u32,
     pub offset: u32,
@@ -58,15 +17,21 @@ pub struct PaginationParams {
 }
 
 impl PaginationParams {
-    pub const DEFAULT_PAGE_SIZE: u32 = 25;
+    pub const DEFAULT_PAGE_SIZE: &'static str = "25";
     pub const MAX_PAGE_SIZE: u32 = 200;
 
-    pub fn from_query(q: &QueryParams) -> Self {
-        let page = q.page.unwrap_or(1).max(1);
-        let limit = q
-            .page_size
-            .unwrap_or(Self::DEFAULT_PAGE_SIZE)
-            .clamp(1, Self::MAX_PAGE_SIZE);
+    pub fn from_query(q: &Filters) -> Self {
+        let page: u32 = q
+            .get("page")
+            .unwrap_or(&"1".to_string())
+            .parse()
+            .unwrap_or(1);
+        let limit: u32 = q
+            .get("page_size")
+            .unwrap_or(&Self::DEFAULT_PAGE_SIZE.to_string())
+            .parse()
+            .unwrap_or(25);
+        let limit = limit.clamp(1, Self::MAX_PAGE_SIZE);
         Self {
             limit,
             offset: (page - 1) * limit,

@@ -26,7 +26,7 @@ pub use cache::DefaultCache;
 pub use context::RequestContext;
 pub use entity::Entity;
 pub use error::ApiError;
-pub use pagination::{Page, PaginationParams, QueryParams, SortDirection};
+pub use pagination::{Page, PaginationParams, SortDirection};
 pub use redis::RedisStore;
 pub use repository::{DefaultRepo, Repository};
 pub use service::{DefaultService, Service};
