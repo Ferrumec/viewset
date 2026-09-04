@@ -1,4 +1,3 @@
-
 use actixutils::Filters;
 use serde::{Deserialize, Serialize};
 

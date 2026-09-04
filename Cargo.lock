@@ -187,9 +187,9 @@ dependencies = [
 
 [[package]]
 name = "actixutils"
-version = "0.6.3"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58079cd1ed21e082aa5d6f4c8ddd7432de6a50a99c75d91742c6f6dd1f8eb0da"
+checksum = "d4a283fe452ed9e87b7294c9a0db43aa3f5852321fc8f02db067a0452985b59c"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -198,6 +198,8 @@ dependencies = [
  "chrono",
  "futures",
  "futures-util",
+ "ipnet",
+ "moka",
  "rand 0.10.2",
  "serde",
  "serde_json",
@@ -1238,6 +1240,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ipnet"
+version = "2.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a756c3fac73139e83f14c2d742155dd2b78d3ee56597b419a0579b7bdd6dd78"
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1374,10 +1382,13 @@ version = "0.12.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4293f18e7567a1caf3c584855554377025c65e0aa445344d04171f5ad63d19b9"
 dependencies = [
+ "async-lock",
  "crossbeam-channel",
  "crossbeam-epoch",
  "crossbeam-utils",
  "equivalent",
+ "event-listener",
+ "futures-util",
  "parking_lot",
  "portable-atomic",
  "smallvec",
@@ -2447,7 +2458,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "viewset"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "actix-web",
  "actixutils",

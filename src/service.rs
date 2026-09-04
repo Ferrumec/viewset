@@ -1,10 +1,10 @@
 use super::entity::Entity;
 use super::error::ApiResult;
-use super::pagination::{Page};
+use super::pagination::Page;
 use super::repository::Repository;
+use actixutils::Filters as QueryParams;
 use async_trait::async_trait;
 use sqlx::{PgPool, Postgres, Transaction};
-use actixutils::Filters as QueryParams;
 
 type E<S> = <<S as Service>::Repository as Repository>::Entity;
 

@@ -1,10 +1,10 @@
-use super::cache::DefaultCache;
-use actixutils::{Filters,Store as Cache};
 use super::entity::Entity;
 use super::error::{ApiError, ApiResult};
 use super::pagination::{PaginationParams, SortDirection};
 use super::sql::{SqlType, SqlValue};
+use actixutils::{Filters, Store};
 use async_trait::async_trait;
+use moka::future::Cache;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use std::sync::Arc;
 /// Database access only: no validation, authorization, or business rules.
@@ -18,7 +18,7 @@ pub trait Repository: Send + Sync {
 
     fn cache(
         &self,
-    ) -> Arc<dyn Cache<<<Self as Repository>::Entity as Entity>::Id, Self::Entity> + Send + Sync>;
+    ) -> Arc<dyn Store<<<Self as Repository>::Entity as Entity>::Id, Self::Entity> + Send + Sync>;
 
     /// Begin a transaction against this repository's pool. Used by the
     /// default `Service::create`/`update`/`delete` implementations so a
@@ -350,11 +350,7 @@ fn push_soft_delete_clause<E: Entity>(qb: &mut QueryBuilder<Postgres>, has_where
     }
 }
 
-fn push_filters<E: Entity>(
-    qb: &mut QueryBuilder<Postgres>,
-    query: &Filters,
-    has_where: &mut bool,
-) {
+fn push_filters<E: Entity>(qb: &mut QueryBuilder<Postgres>, query: &Filters, has_where: &mut bool) {
     for (field, value) in query.iter() {
         if !E::FILTERABLE.contains(&field.as_str()) {
             continue; // silently ignore unknown/forbidden filter keys
@@ -501,21 +497,21 @@ where
 
 pub struct DefaultRepo<E: Entity> {
     db: PgPool,
-    cache: Arc<DefaultCache<E::Id, E>>,
+    cache: Arc<Cache<E::Id, E>>,
 }
 
 impl<E: Entity> From<PgPool> for DefaultRepo<E> {
     fn from(db: PgPool) -> DefaultRepo<E> {
         Self {
             db,
-            cache: Arc::new(DefaultCache::new(1000)),
+            cache: Arc::new(Cache::new(1000)),
         }
     }
 }
 
 impl<E: Entity> Repository for DefaultRepo<E> {
     type Entity = E;
-    fn cache(&self) -> Arc<dyn Cache<E::Id, E> + Send + Sync> {
+    fn cache(&self) -> Arc<dyn Store<E::Id, E> + Send + Sync> {
         self.cache.clone()
     }
     fn database(&self) -> &PgPool {
