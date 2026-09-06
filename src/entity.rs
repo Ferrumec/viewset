@@ -18,7 +18,7 @@ use std::str::FromStr;
 /// needs to hand back an owned value to the caller while also stashing an
 /// owned copy in `Cache<Id, Self>`, which isn't possible without it.
 pub trait Entity:
-    for<'r> FromRow<'r, PgRow> + Serialize + Clone + Send + Sync + Unpin + 'static
+    for<'r> FromRow<'r, PgRow> + Sized + Serialize + Clone + Send + Sync + Unpin + 'static
 {
     /// Primary key type (Uuid, i64, ...).
     type Id: for<'a> sqlx::Encode<'a, sqlx::Postgres>
@@ -82,4 +82,9 @@ pub trait Entity:
 
     /// Extract the primary key from an instance (used after insert/update).
     fn id(&self) -> Self::Id;
+
+    fn insert(
+        dto: Self::CreateDto,
+        pool: &sqlx::PgPool,
+    ) -> impl std::future::Future<Output = Result<Self, sqlx::Error>> + Send;
 }

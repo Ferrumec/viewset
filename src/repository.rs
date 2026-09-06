@@ -14,6 +14,7 @@ use std::sync::Arc;
 #[async_trait]
 pub trait Repository: Send + Sync {
     type Entity: Entity;
+
     fn database(&self) -> &PgPool;
 
     fn cache(
@@ -137,9 +138,8 @@ pub trait Repository: Send + Sync {
     /// Runs as its own auto-committed statement (no explicit `BEGIN`), so
     /// by the time this returns the row is durably written and it's safe
     /// to populate the cache with it directly (write-through).
-    async fn create(&self, dto: &<Self::Entity as Entity>::CreateDto) -> ApiResult<Self::Entity> {
-        let cols = Self::insert_columns(dto)?;
-        let entity = insert_row::<_, Self::Entity>(self.database(), cols).await?;
+    async fn create(&self, dto: <Self::Entity as Entity>::CreateDto) -> ApiResult<Self::Entity> {
+        let entity = Self::Entity::insert(dto, self.database()).await?;
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
             tracing::warn!("failed to set cache: {e}");
         };
