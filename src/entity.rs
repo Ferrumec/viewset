@@ -82,9 +82,18 @@ pub trait Entity:
 
     /// Extract the primary key from an instance (used after insert/update).
     fn id(&self) -> Self::Id;
-
-    fn insert(
+    fn insert<'e, E>(
         dto: Self::CreateDto,
-        pool: &sqlx::PgPool,
-    ) -> impl std::future::Future<Output = Result<Self, sqlx::Error>> + Send;
+        exec: E,
+    ) -> impl std::future::Future<Output = Result<Self, sqlx::Error>> + Send
+    where
+        E: sqlx::postgres::PgExecutor<'e> + Send;
+
+    fn update<'e, E>(
+        id: &Self::Id,
+        dto: Self::UpdateDto,
+        exec: E,
+    ) -> impl std::future::Future<Output = Result<Option<Self>, sqlx::Error>> + Send
+    where
+        E: sqlx::postgres::PgExecutor<'e> + Send;
 }

@@ -96,7 +96,7 @@ pub trait Service: Send + Sync {
     async fn create(&self, dto: <E<Self> as Entity>::CreateDto) -> ApiResult<E<Self>> {
         let mut tx = self.repository().transaction().await?;
         let dto = self.before_create(&mut tx, dto).await?;
-        let entity = self.repository().create_in_tx(&mut tx, &dto).await?;
+        let entity = self.repository().create_in_tx(&mut tx, dto).await?;
         let entity = self.after_create(&mut tx, entity).await?;
         tx.commit().await?;
         Ok(entity)
@@ -109,7 +109,7 @@ pub trait Service: Send + Sync {
     ) -> ApiResult<E<Self>> {
         let mut tx = self.repository().transaction().await?;
         let dto = self.before_update(&mut tx, &id, dto).await?;
-        let entity = self.repository().update_in_tx(&mut tx, &id, &dto).await?;
+        let entity = self.repository().update_in_tx(&mut tx, &id, dto).await?;
         let entity = self.after_update(&mut tx, entity).await?;
         tx.commit().await?;
         Ok(entity)

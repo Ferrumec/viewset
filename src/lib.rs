@@ -29,3 +29,24 @@ pub use service::{DefaultService, Service};
 pub use sql::{Field, SqlType, SqlValue};
 pub use viewset::{DefaultViewSet, ViewSet};
 pub use viewset_macros::Entity;
+
+use serde::Serialize;
+
+/// Default `UpdateDto` for entities that never specify one. This type has
+/// no values — it can't be constructed — so any code path that would need
+/// one is provably unreachable. `web::Json<NoUpdateDto>` extraction fails
+/// deserialization for *every* request body, so PUT/PATCH on such a
+/// resource is rejected before it ever reaches `Service::update`.
+#[derive(Clone, Serialize)]
+pub enum NoUpdateDto {}
+
+impl<'de> serde::Deserialize<'de> for NoUpdateDto {
+    fn deserialize<D>(_d: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Err(serde::de::Error::custom(
+            "this resource does not support update",
+        ))
+    }
+}

@@ -157,13 +157,13 @@ pub trait Repository: Send + Sync {
     /// id that never actually existed. Once the transaction commits, a
     /// subsequent `retrieve()` will populate the cache normally via the
     /// cache-aside path above.
+
     async fn create_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        dto: &<Self::Entity as Entity>::CreateDto,
+        dto: <Self::Entity as Entity>::CreateDto, // now by value, matches create()
     ) -> ApiResult<Self::Entity> {
-        let cols = Self::insert_columns(dto)?;
-        insert_row::<_, Self::Entity>(&mut **tx, cols).await
+        Ok(Self::Entity::insert(dto, &mut **tx).await?)
     }
 
     /// Auto-committed like `create`, so the write-through cache update
@@ -171,10 +171,11 @@ pub trait Repository: Send + Sync {
     async fn update(
         &self,
         id: &<Self::Entity as Entity>::Id,
-        dto: &<Self::Entity as Entity>::UpdateDto,
+        dto: <Self::Entity as Entity>::UpdateDto, // now by value
     ) -> ApiResult<Self::Entity> {
-        let cols = Self::update_columns(dto)?;
-        let entity = update_row::<_, Self::Entity>(self.database(), id, cols).await?;
+        let entity = Self::Entity::update(id, dto, self.database())
+            .await?
+            .ok_or(ApiError::NotFound)?;
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
             tracing::warn!("failed to set cache: {e}");
         };
@@ -201,10 +202,11 @@ pub trait Repository: Send + Sync {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         id: &<Self::Entity as Entity>::Id,
-        dto: &<Self::Entity as Entity>::UpdateDto,
+        dto: <Self::Entity as Entity>::UpdateDto,
     ) -> ApiResult<Self::Entity> {
-        let cols = Self::update_columns(dto)?;
-        let entity = update_row::<_, Self::Entity>(&mut **tx, id, cols).await?;
+        let entity = Self::Entity::update(id, dto, &mut **tx)
+            .await?
+            .ok_or(ApiError::NotFound)?;
         if let Err(e) = self.cache().delete(id).await {
             tracing::error!("failed to invalidate cache: {e}");
         };
@@ -279,55 +281,6 @@ fn fields_from_dto<E: Entity>(
         .collect()
 }
 
-/// Binds one `SqlValue` into the query builder with its native type, so
-/// Postgres sees an `i32`/`Decimal`/`Uuid`/... parameter instead of jsonb.
-fn push_typed(qb: &mut QueryBuilder<Postgres>, value: SqlValue) {
-    match value {
-        SqlValue::Text(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Int4(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Int8(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Float4(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Float8(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Bool(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Uuid(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Date(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Timestamp(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Timestamptz(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Numeric(v) => {
-            qb.push_bind(v);
-        }
-        SqlValue::Json(v) => {
-            qb.push_bind(sqlx::types::Json(v));
-        }
-        // Untyped NULL literal — safe for any column, and correctly
-        // distinct from "column omitted" (which never reaches this
-        // function at all, see `fields_from_dto`).
-        SqlValue::Null => {
-            qb.push("NULL");
-        }
-    }
-}
-
 /// Whether `E`'s soft-delete column (if any) is declared as `Bool` in
 /// `Entity::FIELDS`. Anything else (nullable timestamp being the common
 /// case) is treated as timestamp-flavored soft delete.
@@ -394,69 +347,6 @@ where
     qb.push_bind(id);
     let mut has_where = true;
     push_soft_delete_clause::<Ent>(&mut qb, &mut has_where);
-
-    qb.build_query_as::<Ent>()
-        .fetch_optional(exec)
-        .await?
-        .ok_or(ApiError::NotFound)
-}
-
-/// Generic INSERT, usable against either a pool or an open transaction.
-async fn insert_row<'e, E, Ent>(exec: E, cols: Vec<(&'static str, SqlValue)>) -> ApiResult<Ent>
-where
-    E: sqlx::postgres::PgExecutor<'e>,
-    Ent: Entity,
-{
-    let table = Ent::TABLE;
-    if cols.is_empty() {
-        return Err(ApiError::Validation("nothing to insert".into()));
-    }
-
-    let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(format!("INSERT INTO {table} ("));
-    qb.push(cols.iter().map(|(c, _)| *c).collect::<Vec<_>>().join(", "));
-    qb.push(") VALUES (");
-    for (i, (_, value)) in cols.into_iter().enumerate() {
-        if i > 0 {
-            qb.push(", ");
-        }
-        push_typed(&mut qb, value);
-    }
-    qb.push(") RETURNING ").push(Ent::COLUMNS.join(", "));
-
-    Ok(qb.build_query_as::<Ent>().fetch_one(exec).await?)
-}
-
-/// Generic UPDATE by primary key, usable against either a pool or an open
-/// transaction. The id is bound with its native sqlx type (not
-/// `.to_string()`'d into a text parameter) so it matches the column's
-/// actual type — binding a `Uuid`/int PK as text made Postgres reject the
-/// comparison with an "operator does not exist" error.
-async fn update_row<'e, E, Ent>(
-    exec: E,
-    id: &Ent::Id,
-    cols: Vec<(&'static str, SqlValue)>,
-) -> ApiResult<Ent>
-where
-    E: sqlx::postgres::PgExecutor<'e>,
-    Ent: Entity,
-{
-    if cols.is_empty() {
-        return retrieve_row::<_, Ent>(exec, id).await;
-    }
-
-    let table = Ent::TABLE;
-    let pk = Ent::PK_COLUMN;
-    let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(format!("UPDATE {table} SET "));
-    for (i, (c, value)) in cols.into_iter().enumerate() {
-        if i > 0 {
-            qb.push(", ");
-        }
-        qb.push(format!("{c} = "));
-        push_typed(&mut qb, value);
-    }
-    qb.push(format!(" WHERE {pk} = "));
-    qb.push_bind(id);
-    qb.push(" RETURNING ").push(Ent::COLUMNS.join(", "));
 
     qb.build_query_as::<Ent>()
         .fetch_optional(exec)
