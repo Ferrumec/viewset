@@ -2458,7 +2458,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "viewset"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "actix-web",
  "actixutils",
@@ -2478,7 +2478,9 @@ dependencies = [
 
 [[package]]
 name = "viewset-macros"
-version = "0.1.4"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b7503c2519893f103f8867d59775d3aa1f5ff0d737bb7fb225ec31fad4583d8"
 dependencies = [
  "proc-macro2",
  "quote",
