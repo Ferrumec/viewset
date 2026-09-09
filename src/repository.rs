@@ -417,6 +417,7 @@ pub fn hash_params(params: &std::collections::HashMap<String, String>) -> u64 {
 pub struct DefaultRepo<E: Entity> {
     db: PgPool,
     cache: Arc<Cache<E::Id, E>>,
+    list_cache: Arc<Cache<u64, (Vec<E>, i64)>>,
 }
 
 impl<E: Entity> From<PgPool> for DefaultRepo<E> {
@@ -424,6 +425,7 @@ impl<E: Entity> From<PgPool> for DefaultRepo<E> {
         Self {
             db,
             cache: Arc::new(Cache::new(1000)),
+            list_cache: Arc::new(Cache::new(1000)),
         }
     }
 }
@@ -432,6 +434,9 @@ impl<E: Entity> Repository for DefaultRepo<E> {
     type Entity = E;
     fn cache(&self) -> Arc<dyn Store<E::Id, E> + Send + Sync> {
         self.cache.clone()
+    }
+    fn list_cache(&self) -> Arc<dyn Store<u64, (Vec<E>, i64)> + Send + Sync> {
+        self.list_cache.clone()
     }
     fn database(&self) -> &PgPool {
         &self.db
