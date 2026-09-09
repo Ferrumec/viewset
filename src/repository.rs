@@ -2,6 +2,7 @@ use super::entity::Entity;
 use super::error::{ApiError, ApiResult};
 use super::pagination::{PaginationParams, SortDirection};
 use super::sql::{SqlType, SqlValue};
+use crate::no_cache::NoCache;
 use actixutils::{Filters, Store};
 use async_trait::async_trait;
 use moka::future::Cache;
@@ -19,7 +20,10 @@ pub trait Repository: Send + Sync {
 
     fn cache(
         &self,
-    ) -> Arc<dyn Store<<<Self as Repository>::Entity as Entity>::Id, Self::Entity> + Send + Sync>;
+    ) -> Arc<dyn Store<<<Self as Repository>::Entity as Entity>::Id, Self::Entity> + Send + Sync>
+    {
+        NoCache::new()
+    }
 
     /// Begin a transaction against this repository's pool. Used by the
     /// default `Service::create`/`update`/`delete` implementations so a
