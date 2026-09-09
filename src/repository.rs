@@ -25,6 +25,10 @@ pub trait Repository: Send + Sync {
         NoCache::new()
     }
 
+    fn list_cache(&self) -> Arc<dyn Store<u64, (Vec<Self::Entity>, i64)> + Send + Sync> {
+        NoCache::new()
+    }
+
     /// Begin a transaction against this repository's pool. Used by the
     /// default `Service::create`/`update`/`delete` implementations so a
     /// mutation and its `before_*`/`after_*` hooks run atomically — if a
@@ -63,6 +67,10 @@ pub trait Repository: Send + Sync {
     }
 
     async fn list(&self, query: &Filters) -> ApiResult<(Vec<Self::Entity>, i64)> {
+        let key = hash_params(&query.0);
+        if let Ok(Some((items, total))) = self.list_cache().get(&key).await {
+            return Ok((items, total));
+        }
         let pagination = PaginationParams::from_query(query);
         let e = <Self::Entity as Entity>::TABLE;
 
@@ -387,6 +395,23 @@ where
         return Err(ApiError::NotFound);
     }
     Ok(())
+}
+
+use std::hash::{Hash, Hasher};
+
+pub fn hash_params(params: &std::collections::HashMap<String, String>) -> u64 {
+    let mut entries: Vec<_> = params.iter().collect();
+
+    entries.sort_unstable_by(|(a, _), (b, _)| a.cmp(b));
+
+    let mut hasher = std::hash::DefaultHasher::new();
+
+    for (key, value) in entries {
+        key.hash(&mut hasher);
+        value.hash(&mut hasher);
+    }
+
+    hasher.finish()
 }
 
 pub struct DefaultRepo<E: Entity> {
