@@ -1,7 +1,7 @@
 use super::entity::Entity;
 use super::error::{ApiError, ApiResult};
 use super::pagination::{PaginationParams, SortDirection};
-use super::sql::{SqlType, SqlValue};
+use super::sql::SqlType;
 use crate::no_cache::NoCache;
 use actixutils::{Filters, Store};
 use async_trait::async_trait;
@@ -35,35 +35,6 @@ pub trait Repository: Send + Sync {
     /// hook (or the write itself) fails, everything rolls back together.
     async fn transaction(&self) -> ApiResult<Transaction<'_, Postgres>> {
         Ok(self.database().begin().await?)
-    }
-
-    /// Row-to-column-value pairs for INSERT, derived from the create DTO.
-    ///
-    /// Default implementation: serialize the DTO to a JSON object, then
-    /// for every `(name, SqlType)` in `Entity::FIELDS` that the object has
-    /// a key for, convert that JSON value into a typed `SqlValue` — so
-    /// `create()` binds a real `i32`/`Decimal`/`Uuid`/... instead of
-    /// wrapping everything in `Json<Value>` (which made Postgres treat
-    /// numeric/uuid/timestamp columns as jsonb and reject the insert).
-    /// Returns an error (rather than silently defaulting) if a value
-    /// doesn't fit its column's declared type. Override only if a column
-    /// needs a value the DTO doesn't carry directly (computed columns,
-    /// server-generated defaults, etc.).
-    fn insert_columns(
-        dto: &<Self::Entity as Entity>::CreateDto,
-    ) -> ApiResult<Vec<(&'static str, SqlValue)>> {
-        fields_from_dto::<Self::Entity>(dto)
-    }
-
-    /// Row-to-column-value pairs for UPDATE. Only fields actually present
-    /// in the serialized DTO are returned, so PATCH semantics fall out of
-    /// `#[serde(skip_serializing_if = "Option::is_none")]` on the
-    /// `UpdateDto`'s fields rather than needing an `Option<SqlValue>`
-    /// wrapper: an absent key means "leave the column alone".
-    fn update_columns(
-        dto: &<Self::Entity as Entity>::UpdateDto,
-    ) -> ApiResult<Vec<(&'static str, SqlValue)>> {
-        fields_from_dto::<Self::Entity>(dto)
     }
 
     async fn list(&self, query: &Filters) -> ApiResult<(Vec<Self::Entity>, i64)> {
@@ -267,30 +238,6 @@ pub trait Repository: Send + Sync {
         let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(format!("SELECT COUNT(*) FROM {e}"));
         Ok(qb.build_query_scalar().fetch_one(self.database()).await?)
     }
-}
-
-/// Serializes a DTO to a JSON object and, for each `(name, SqlType)` in
-/// `E::FIELDS` that the object actually has a key for, converts that value
-/// into a typed `SqlValue`. Keys the DTO doesn't have (e.g. an `UpdateDto`
-/// field skipped via `skip_serializing_if`) are simply omitted from the
-/// result — that omission is what gives PATCH its "leave alone" semantics.
-/// A value that doesn't match its column's declared type is rejected with
-/// `ApiError::Validation` rather than silently coerced to a default.
-fn fields_from_dto<E: Entity>(
-    dto: &(impl serde::Serialize + ?Sized),
-) -> ApiResult<Vec<(&'static str, SqlValue)>> {
-    let json = serde_json::to_value(dto)
-        .map_err(|e| ApiError::Internal(format!("failed to serialize DTO: {e}")))?;
-    let Some(obj) = json.as_object() else {
-        return Ok(Vec::new());
-    };
-    E::FIELDS
-        .iter()
-        .filter_map(|(name, sql_type)| {
-            obj.get(*name)
-                .map(|v| SqlValue::from_json(*sql_type, name, v).map(|sv| (*name, sv)))
-        })
-        .collect()
 }
 
 /// Whether `E`'s soft-delete column (if any) is declared as `Bool` in
