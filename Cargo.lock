@@ -188,7 +188,7 @@ dependencies = [
 [[package]]
 name = "actixutils"
 version = "0.6.7"
-source = "sparse+http://localhost:3000/api/packages/Ostiness/cargo/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12833d6041fad0cbe7ed530f8547172c1451f3dfb03d8c1226770cbda54f3c56"
 dependencies = [
  "actix-web",
@@ -2458,7 +2458,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "viewset"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "actix-web",
  "actixutils",
