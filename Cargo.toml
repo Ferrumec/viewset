@@ -7,7 +7,7 @@ license = "MIT"
 
 [dependencies]
 actix-web = "4.14.1"
-actixutils = "0.6.6"
+actixutils = { version = "0.6.6", registry = "gitea" }
 async-trait = "0.1.92"
 chrono = "0.4.45"
 moka = { version = "0.12.16", features = ["sync"] }

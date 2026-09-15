@@ -187,9 +187,9 @@ dependencies = [
 
 [[package]]
 name = "actixutils"
-version = "0.6.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4a283fe452ed9e87b7294c9a0db43aa3f5852321fc8f02db067a0452985b59c"
+version = "0.6.7"
+source = "sparse+http://localhost:3000/api/packages/Ostiness/cargo/"
+checksum = "12833d6041fad0cbe7ed530f8547172c1451f3dfb03d8c1226770cbda54f3c56"
 dependencies = [
  "actix-web",
  "anyhow",
