@@ -187,9 +187,9 @@ dependencies = [
 
 [[package]]
 name = "actixutils"
-version = "0.6.7"
+version = "0.7.0-a"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12833d6041fad0cbe7ed530f8547172c1451f3dfb03d8c1226770cbda54f3c56"
+checksum = "2020852eeb1b890aca54b367ccf489e95604e2a5dcd6f51ee99a1d18e130f4fa"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2458,7 +2458,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "viewset"
-version = "0.4.2"
+version = "0.4.3-a"
 dependencies = [
  "actix-web",
  "actixutils",

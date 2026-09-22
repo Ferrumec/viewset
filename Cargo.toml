@@ -1,13 +1,13 @@
 [package]
 name = "viewset"
-version = "0.4.2"
+version = "0.4.3-a"
 edition = "2024"
 description = "A Rust, Actix Web–based resource framework that provides convention-driven CRUD APIs over database entities, with layered ViewSet → Service → Repository architecture, validation/hooks, pagination, filtering, transactions, and caching."
 license = "MIT"
 
 [dependencies]
 actix-web = "4.14.1"
-actixutils = { version = "0.6.7" }
+actixutils = { version = "0.7.0-a" }
 async-trait = "0.1.92"
 chrono = "0.4.45"
 moka = { version = "0.12.16", features = ["sync"] }
