@@ -1,4 +1,4 @@
-use actixutils::Store;
+use ferrumec::Store;
 use std::error::Error;
 use std::marker::PhantomData;
 use std::sync::Arc;

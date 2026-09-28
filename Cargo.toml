@@ -1,6 +1,6 @@
 [package]
 name = "viewset"
-version = "0.4.3-a"
+version = "0.4.3-b"
 edition = "2024"
 description = "A Rust, Actix Web–based resource framework that provides convention-driven CRUD APIs over database entities, with layered ViewSet → Service → Repository architecture, validation/hooks, pagination, filtering, transactions, and caching."
 license = "MIT"
@@ -19,4 +19,4 @@ thiserror = "2.0.20"
 tracing = "0.1.44"
 uuid = "1.24.0"
 viewset-macros = "0.2"
-redis = { version = "1", features = ["tokio-comp"] }
+ferrumec = "0.1.0"

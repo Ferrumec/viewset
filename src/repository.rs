@@ -3,11 +3,13 @@ use super::error::{ApiError, ApiResult};
 use super::pagination::{PaginationParams, SortDirection};
 use super::sql::SqlType;
 use crate::no_cache::NoCache;
-use actixutils::{Filters, Store};
+use actixutils::Filters;
 use async_trait::async_trait;
+use ferrumec::{Store, cache::CacheFactory};
 use moka::future::Cache;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use std::sync::Arc;
+use std::time::Duration;
 /// Database access only: no validation, authorization, or business rules.
 /// Every method has a default implementation built from `Entity` metadata
 /// via a dynamic `QueryBuilder`; override any of them when the generated
@@ -363,8 +365,19 @@ pub fn hash_params(params: &std::collections::HashMap<String, String>) -> u64 {
 
 pub struct DefaultRepo<E: Entity> {
     db: PgPool,
-    cache: Arc<Cache<E::Id, E>>,
-    list_cache: Arc<Cache<u64, (Vec<E>, i64)>>,
+    cache: Arc<dyn Store<E::Id, E>>,
+    list_cache: Arc<dyn Store<u64, (Vec<E>, i64)>>,
+}
+
+impl<E: Entity + serde::de::DeserializeOwned> DefaultRepo<E> {
+    pub fn new(db: PgPool, cache_factory: impl CacheFactory) -> DefaultRepo<E> {
+        Self {
+            db,
+            cache: cache_factory.new_cache(&format!("{}_items", E::TABLE), Duration::from_mins(30)),
+            list_cache: cache_factory
+                .new_cache(&format!("{}_lists", E::TABLE), Duration::from_mins(30)),
+        }
+    }
 }
 
 impl<E: Entity> From<PgPool> for DefaultRepo<E> {
