@@ -2,7 +2,6 @@ use super::entity::Entity;
 use super::error::ApiError;
 use super::service::Service;
 use actix_web::{HttpResponse, web};
-use actixutils::Filters as QueryParams;
 use sqlx::PgPool;
 use std::str::FromStr;
 
@@ -34,7 +33,7 @@ pub trait ViewSet: Send + Sync + 'static {
 
         cfg.service(
             web::resource(path)
-                .route(web::get().to(move |q, f| Self::handle_list(vs_list.clone(), f, q)))
+                .route(web::get().to(move | f| Self::handle_list(vs_list.clone(), f)))
                 .route(web::post().to(move |body| Self::handle_create(vs_post.clone(), body))),
         )
         .service(
@@ -54,15 +53,13 @@ pub trait ViewSet: Send + Sync + 'static {
     fn handle_list(
         self: std::sync::Arc<Self>,
         f: actixutils::extractors::Filters,
-        q: web::Query<QueryParams>,
     ) -> impl std::future::Future<Output = actix_web::Result<HttpResponse>>
     where
         Self: Sized,
     {
-        let mut query = q.into_inner();
-        query.extend(f.0);
+        
         async move {
-            let page = self.service().list(query).await?;
+            let page = self.service().list(f).await?;
             Ok(HttpResponse::Ok().json(page))
         }
     }
