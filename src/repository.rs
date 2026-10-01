@@ -100,7 +100,11 @@ pub trait Repository: Send + Sync {
             .fetch_one(self.database())
             .await?;
 
-        Ok((items, total))
+        let results = (items, total);
+        if let Err(e) = self.list_cache().set(&key, results.clone()).await {
+            tracing::warn!("could not set value in list cache: {e}");
+        };
+        Ok(results)
     }
 
     /// Cache-aside read: a hit returns straight from `cache()` without
@@ -125,6 +129,9 @@ pub trait Repository: Send + Sync {
     /// to populate the cache with it directly (write-through).
     async fn create(&self, dto: <Self::Entity as Entity>::CreateDto) -> ApiResult<Self::Entity> {
         let entity = Self::Entity::insert(dto, self.database()).await?;
+        if let Err(e) = self.list_cache().clear().await {
+            tracing::warn!("failed to invalidate list cache: {e}");
+        };
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
             tracing::warn!("failed to set cache: {e}");
         };
@@ -161,6 +168,9 @@ pub trait Repository: Send + Sync {
         let entity = Self::Entity::update(id, dto, self.database())
             .await?
             .ok_or(ApiError::NotFound)?;
+        if let Err(e) = self.list_cache().clear().await {
+            tracing::warn!("failed to invalidate list cache: {e}");
+        };
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
             tracing::warn!("failed to set cache: {e}");
         };

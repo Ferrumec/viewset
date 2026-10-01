@@ -24,6 +24,9 @@ where
     async fn delete(&self, _key: &K) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
+    async fn clear(&self) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }
 
 impl<K, V> NoCache<K, V> {

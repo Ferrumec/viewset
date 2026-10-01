@@ -33,7 +33,7 @@ pub trait ViewSet: Send + Sync + 'static {
 
         cfg.service(
             web::resource(path)
-                .route(web::get().to(move | f| Self::handle_list(vs_list.clone(), f)))
+                .route(web::get().to(move |f| Self::handle_list(vs_list.clone(), f)))
                 .route(web::post().to(move |body| Self::handle_create(vs_post.clone(), body))),
         )
         .service(
@@ -57,7 +57,6 @@ pub trait ViewSet: Send + Sync + 'static {
     where
         Self: Sized,
     {
-        
         async move {
             let page = self.service().list(f).await?;
             Ok(HttpResponse::Ok().json(page))
