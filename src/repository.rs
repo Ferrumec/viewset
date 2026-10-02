@@ -372,6 +372,7 @@ pub fn hash_params(params: &std::collections::HashMap<String, String>) -> u64 {
     hasher.finish()
 }
 
+#[derive(Clone)]
 pub struct DefaultRepo<E: Entity> {
     db: PgPool,
     cache: Arc<dyn Store<E::Id, E>>,

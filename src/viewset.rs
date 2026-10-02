@@ -131,7 +131,7 @@ where
         .map_err(|_| ApiError::Validation(format!("invalid id: {raw}")))
 }
 
-pub struct DefaultViewSet<S: Service>(S);
+pub struct DefaultViewSet<S: Service>(pub S);
 
 impl<E: Service> From<E> for DefaultViewSet<E> {
     fn from(service: E) -> DefaultViewSet<E> {
