@@ -4,7 +4,7 @@ use super::pagination::Page;
 use super::repository::Repository;
 use actixutils::Filters as QueryParams;
 use async_trait::async_trait;
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::{Postgres, Transaction};
 
 type E<S> = <<S as Service>::Repository as Repository>::Entity;
 
@@ -125,20 +125,17 @@ pub trait Service: Send + Sync {
     }
 }
 
-pub struct DefaultService<E: Repository> {
-    repo: E,
-}
+pub struct DefaultService<E: Repository>(E);
 
-impl<E: Repository + From<PgPool>> From<PgPool> for DefaultService<E> {
-    fn from(db: PgPool) -> DefaultService<E> {
-        let repo = db.into();
-        Self { repo }
+impl<E: Repository > From<E> for DefaultService<E> {
+    fn from(repo: E) -> DefaultService<E> {
+        Self(repo)
     }
 }
 
 impl<E: Repository> Service for DefaultService<E> {
     type Repository = E;
     fn repository(&self) -> &E {
-        &self.repo
+        &self.0
     }
 }

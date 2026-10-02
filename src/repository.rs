@@ -6,7 +6,6 @@ use crate::no_cache::NoCache;
 use actixutils::Filters;
 use async_trait::async_trait;
 use ferrumec::{Store, cache::CacheFactory};
-use moka::future::Cache;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use std::sync::Arc;
 use std::time::Duration;
@@ -390,15 +389,6 @@ impl<E: Entity + serde::de::DeserializeOwned> DefaultRepo<E> {
     }
 }
 
-impl<E: Entity> From<PgPool> for DefaultRepo<E> {
-    fn from(db: PgPool) -> DefaultRepo<E> {
-        Self {
-            db,
-            cache: Arc::new(Cache::new(1000)),
-            list_cache: Arc::new(Cache::new(1000)),
-        }
-    }
-}
 
 impl<E: Entity> Repository for DefaultRepo<E> {
     type Entity = E;
