@@ -30,6 +30,10 @@ pub trait Repository: Send + Sync {
         NoCache::new()
     }
 
+    fn list_one_cache(&self) -> Arc<dyn Store<u64, Self::Entity> + Send + Sync> {
+        NoCache::new()
+    }
+
     /// Begin a transaction against this repository's pool. Used by the
     /// default `Service::create`/`update`/`delete` implementations so a
     /// mutation and its `before_*`/`after_*` hooks run atomically — if a
@@ -104,6 +108,38 @@ pub trait Repository: Send + Sync {
             tracing::warn!("could not set value in list cache: {e}");
         };
         Ok(results)
+    }
+
+    async fn list_one(&self, query: &Filters) -> ApiResult<Self::Entity> {
+        let key = hash_params(&query.0);
+        if let Ok(Some(items)) = self.list_one_cache().get(&key).await {
+            return Ok(items);
+        }
+        let e = <Self::Entity as Entity>::TABLE;
+
+        let mut select_qb: QueryBuilder<Postgres> = QueryBuilder::new(format!(
+            "SELECT {} FROM {e}",
+            <Self::Entity as Entity>::COLUMNS.join(", ")
+        ));
+
+        // `select_qb` and `count_qb` are two independent statements and
+        // must track their own WHERE state separately — sharing one flag
+        // between them caused a bare `AND` with no preceding `WHERE` on
+        // `count_qb` whenever a soft-delete column or any filter/search
+        // param was involved, which Postgres rejects as a syntax error.
+        let mut select_has_where = false;
+        push_soft_delete_clause::<Self::Entity>(&mut select_qb, &mut select_has_where);
+        push_filters::<Self::Entity>(&mut select_qb, query, &mut select_has_where);
+
+        let item = select_qb
+            .build_query_as::<Self::Entity>()
+            .fetch_one(self.database())
+            .await?;
+
+        if let Err(e) = self.list_one_cache().set(&key, item.clone()).await {
+            tracing::warn!("could not set value in list cache: {e}");
+        };
+        Ok(item)
     }
 
     /// Cache-aside read: a hit returns straight from `cache()` without
@@ -377,6 +413,7 @@ pub struct DefaultRepo<E: Entity> {
     db: PgPool,
     cache: Arc<dyn Store<E::Id, E>>,
     list_cache: Arc<dyn Store<u64, (Vec<E>, i64)>>,
+    list_one_cache: Arc<dyn Store<u64, E>>,
 }
 
 impl<E: Entity + serde::de::DeserializeOwned> DefaultRepo<E> {
@@ -386,10 +423,11 @@ impl<E: Entity + serde::de::DeserializeOwned> DefaultRepo<E> {
             cache: cache_factory.new_cache(&format!("{}_items", E::TABLE), Duration::from_mins(30)),
             list_cache: cache_factory
                 .new_cache(&format!("{}_lists", E::TABLE), Duration::from_mins(30)),
+            list_one_cache: cache_factory
+                .new_cache(&format!("{}_list_one", E::TABLE), Duration::from_mins(30)),
         }
     }
 }
-
 
 impl<E: Entity> Repository for DefaultRepo<E> {
     type Entity = E;
@@ -398,6 +436,9 @@ impl<E: Entity> Repository for DefaultRepo<E> {
     }
     fn list_cache(&self) -> Arc<dyn Store<u64, (Vec<E>, i64)> + Send + Sync> {
         self.list_cache.clone()
+    }
+    fn list_one_cache(&self) -> Arc<dyn Store<u64, E> + Send + Sync> {
+        self.list_one_cache.clone()
     }
     fn database(&self) -> &PgPool {
         &self.db

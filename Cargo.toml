@@ -19,4 +19,4 @@ thiserror = "2.0.20"
 tracing = "0.1.44"
 uuid = "1.24.0"
 viewset-macros = "0.2"
-ferrumec = "0.3"
+ferrumec = { path = "../ferrumec" }

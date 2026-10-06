@@ -127,7 +127,7 @@ pub trait Service: Send + Sync {
 
 pub struct DefaultService<E: Repository>(pub E);
 
-impl<E: Repository > From<E> for DefaultService<E> {
+impl<E: Repository> From<E> for DefaultService<E> {
     fn from(repo: E) -> DefaultService<E> {
         Self(repo)
     }

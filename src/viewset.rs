@@ -139,8 +139,6 @@ impl<E: Service> From<E> for DefaultViewSet<E> {
     }
 }
 
-
-
 impl<E: Service + 'static> ViewSet for DefaultViewSet<E> {
     type Service = E;
     fn service(&self) -> &E {
