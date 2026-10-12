@@ -34,6 +34,8 @@ pub use viewset_macros::Entity;
 
 use serde::Serialize;
 
+pub type Filters = std::collections::HashMap<String,String>;
+
 /// Default `UpdateDto` for entities that never specify one. This type has
 /// no values — it can't be constructed — so any code path that would need
 /// one is provably unreachable. `web::Json<NoUpdateDto>` extraction fails

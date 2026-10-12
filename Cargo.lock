@@ -186,28 +186,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actixutils"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddf21d07aa2cfa5f43e7b686a3baff5d530da9d968f3bdf994bae86f639a4628"
-dependencies = [
- "actix-web",
- "anyhow",
- "async-trait",
- "bytes",
- "chrono",
- "ferrumec",
- "futures",
- "futures-util",
- "ipnet",
- "rand 0.10.2",
- "serde",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -262,12 +240,6 @@ checksum = "ae221649c9976a6f6c56ae1facf410f3ddb33cc661c4b7b61020a912d4237fbc"
 dependencies = [
  "libc",
 ]
-
-[[package]]
-name = "anyhow"
-version = "1.0.104"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "arrayvec"
@@ -1261,12 +1233,6 @@ dependencies = [
  "equivalent",
  "hashbrown 0.17.1",
 ]
-
-[[package]]
-name = "ipnet"
-version = "2.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a756c3fac73139e83f14c2d742155dd2b78d3ee56597b419a0579b7bdd6dd78"
 
 [[package]]
 name = "ipnetwork"
@@ -2571,7 +2537,6 @@ name = "viewset"
 version = "0.5.2"
 dependencies = [
  "actix-web",
- "actixutils",
  "async-trait",
  "chrono",
  "ferrumec",

@@ -23,7 +23,7 @@ async-trait = "0.1"
 thiserror = "1"
 ```
 
-`viewset` itself is exposed from `actixutils::viewset` (or as its own crate,
+`viewset` itself is exposed from `crate::viewset` (or as its own crate,
 depending on how your workspace is laid out), together with the
 `viewset-macros` crate for `#[derive(Entity)]`.
 

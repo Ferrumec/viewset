@@ -3,7 +3,7 @@ use super::error::{ApiError, ApiResult};
 use super::pagination::{PaginationParams, SortDirection};
 use super::sql::SqlType;
 use crate::no_cache::NoCache;
-use actixutils::Filters;
+use crate::Filters;
 use async_trait::async_trait;
 use ferrumec::{Store, cache::CacheFactory};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
@@ -43,7 +43,7 @@ pub trait Repository: Send + Sync {
     }
 
     async fn list(&self, query: &Filters) -> ApiResult<(Vec<Self::Entity>, i64)> {
-        let key = hash_params(&query.0);
+        let key = hash_params(&query);
         if let Ok(Some((items, total))) = self.list_cache().get(&key).await {
             return Ok((items, total));
         }
@@ -111,7 +111,7 @@ pub trait Repository: Send + Sync {
     }
 
     async fn list_one(&self, query: &Filters) -> ApiResult<Self::Entity> {
-        let key = hash_params(&query.0);
+        let key = hash_params(&query);
         if let Ok(Some(items)) = self.list_one_cache().get(&key).await {
             return Ok(items);
         }

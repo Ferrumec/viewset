@@ -3,7 +3,7 @@ use super::error::ApiError;
 use super::service::Service;
 use actix_web::{HttpResponse, web};
 use std::str::FromStr;
-
+use crate::Filters;
 type E<V> =
     <<<V as ViewSet>::Service as Service>::Repository as super::repository::Repository>::Entity;
 
@@ -51,13 +51,13 @@ pub trait ViewSet: Send + Sync + 'static {
 
     fn handle_list(
         self: std::sync::Arc<Self>,
-        f: actixutils::extractors::Filters,
+        f: web::Query<Filters>,
     ) -> impl std::future::Future<Output = actix_web::Result<HttpResponse>>
     where
         Self: Sized,
     {
         async move {
-            let page = self.service().list(f).await?;
+            let page = self.service().list(f.into_inner()).await?;
             Ok(HttpResponse::Ok().json(page))
         }
     }

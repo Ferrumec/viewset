@@ -1,4 +1,4 @@
-use actixutils::Filters;
+use crate::Filters;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Deserialize)]
