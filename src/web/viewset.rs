@@ -1,11 +1,10 @@
-use super::entity::Entity;
-use super::error::ApiError;
-use super::service::Service;
+use super::ApiError;
+use super::Service;
+use crate::Entity;
 use crate::Filters;
 use actix_web::{HttpResponse, web};
 use std::str::FromStr;
-type E<V> =
-    <<<V as ViewSet>::Service as Service>::Repository as super::repository::Repository>::Entity;
+type E<V> = <<<V as ViewSet>::Service as Service>::Repository as crate::Repository>::Entity;
 
 /// HTTP layer: extracts requests, calls the Service, translates results
 /// into responses. Nothing here touches the database directly.

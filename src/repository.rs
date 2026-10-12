@@ -1,7 +1,5 @@
 use super::entity::Entity;
-use super::error::{ApiError, ApiResult};
 use super::pagination::{PaginationParams, SortDirection};
-use super::sql::SqlType;
 use crate::Filters;
 use crate::no_cache::NoCache;
 use async_trait::async_trait;
@@ -9,6 +7,8 @@ use ferrumec::{Store, cache::CacheFactory};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use std::sync::Arc;
 use std::time::Duration;
+
+type ApiResult<T> = Result<T, sqlx::Error>;
 /// Database access only: no validation, authorization, or business rules.
 /// Every method has a default implementation built from `Entity` metadata
 /// via a dynamic `QueryBuilder`; override any of them when the generated
@@ -200,9 +200,7 @@ pub trait Repository: Send + Sync {
         id: &<Self::Entity as Entity>::Id,
         dto: <Self::Entity as Entity>::UpdateDto, // now by value
     ) -> ApiResult<Self::Entity> {
-        let entity = Self::Entity::update(id, dto, self.database())
-            .await?
-            .ok_or(ApiError::NotFound)?;
+        let entity = Self::Entity::update(id, dto, self.database()).await?;
         if let Err(e) = self.list_cache().clear().await {
             tracing::warn!("failed to invalidate list cache: {e}");
         };
@@ -234,9 +232,7 @@ pub trait Repository: Send + Sync {
         id: &<Self::Entity as Entity>::Id,
         dto: <Self::Entity as Entity>::UpdateDto,
     ) -> ApiResult<Self::Entity> {
-        let entity = Self::Entity::update(id, dto, &mut **tx)
-            .await?
-            .ok_or(ApiError::NotFound)?;
+        let entity = Self::Entity::update(id, dto, &mut **tx).await?;
         if let Err(e) = self.cache().delete(id).await {
             tracing::error!("failed to invalidate cache: {e}");
         };
@@ -287,19 +283,10 @@ pub trait Repository: Send + Sync {
     }
 }
 
-/// Whether `E`'s soft-delete column (if any) is declared as `Bool` in
-/// `Entity::FIELDS`. Anything else (nullable timestamp being the common
-/// case) is treated as timestamp-flavored soft delete.
-fn soft_delete_is_bool<E: Entity>(col: &str) -> bool {
-    E::FIELDS
-        .iter()
-        .any(|(name, ty)| *name == col && *ty == SqlType::Bool)
-}
-
 fn push_soft_delete_clause<E: Entity>(qb: &mut QueryBuilder<Postgres>, has_where: &mut bool) {
     if let Some(col) = E::SOFT_DELETE_COLUMN {
         qb.push(if *has_where { " AND " } else { " WHERE " });
-        if soft_delete_is_bool::<E>(col) {
+        if E::SOFT_DELETE_IS_FLAG {
             // Boolean flag: NULL and false both mean "not deleted".
             qb.push(format!("{col} IS NOT TRUE"));
         } else {
@@ -354,10 +341,7 @@ where
     let mut has_where = true;
     push_soft_delete_clause::<Ent>(&mut qb, &mut has_where);
 
-    qb.build_query_as::<Ent>()
-        .fetch_optional(exec)
-        .await?
-        .ok_or(ApiError::NotFound)
+    qb.build_query_as::<Ent>().fetch_one(exec).await
 }
 
 /// Generic DELETE (or soft delete) by primary key, usable against either a
@@ -374,7 +358,7 @@ where
     let pk = Ent::PK_COLUMN;
 
     let mut qb: QueryBuilder<Postgres> = if let Some(col) = Ent::SOFT_DELETE_COLUMN {
-        if soft_delete_is_bool::<Ent>(col) {
+        if Ent::SOFT_DELETE_IS_FLAG {
             QueryBuilder::new(format!("UPDATE {table} SET {col} = true WHERE {pk} = "))
         } else {
             QueryBuilder::new(format!("UPDATE {table} SET {col} = now() WHERE {pk} = "))
@@ -386,7 +370,7 @@ where
 
     let res = qb.build().execute(exec).await?;
     if res.rows_affected() == 0 {
-        return Err(ApiError::NotFound);
+        return Err(sqlx::Error::RowNotFound);
     }
     Ok(())
 }

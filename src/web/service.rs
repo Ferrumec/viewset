@@ -1,8 +1,8 @@
-use super::entity::Entity;
 use super::error::ApiResult;
-use super::pagination::Page;
-use super::repository::Repository;
+use crate::Entity;
 use crate::Filters as QueryParams;
+use crate::Page;
+use crate::Repository;
 use async_trait::async_trait;
 use sqlx::{Postgres, Transaction};
 
@@ -84,13 +84,13 @@ pub trait Service: Send + Sync {
     async fn list(&self, q: QueryParams) -> ApiResult<Page<E<Self>>> {
         self.before_list(&q).await?;
         let (items, total) = self.repository().list(&q).await?;
-        let pagination = super::pagination::PaginationParams::from_query(&q);
+        let pagination = crate::PaginationParams::from_query(&q);
         let page = Page::new(items, &pagination, total);
         self.after_list(page).await
     }
 
     async fn retrieve(&self, id: <E<Self> as Entity>::Id) -> ApiResult<E<Self>> {
-        self.repository().retrieve(&id).await
+        Ok(self.repository().retrieve(&id).await?)
     }
 
     async fn create(&self, dto: <E<Self> as Entity>::CreateDto) -> ApiResult<E<Self>> {

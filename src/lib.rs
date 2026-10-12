@@ -12,25 +12,17 @@
 //! plus entity metadata to get a fully working CRUD API.
 extern crate self as viewset;
 mod entity;
-mod error;
 mod no_cache;
 mod pagination;
 mod repository;
-mod service;
-mod session;
-mod sql;
-
-#[path = "viewset.rs"]
-mod viewset_impl;
+#[cfg(feature = "web")]
+pub mod web;
 pub use entity::Entity;
-pub use error::ApiError;
 pub use pagination::{Page, PaginationParams, SortDirection};
 pub use repository::{DefaultRepo, Repository};
-pub use service::{DefaultService, Service};
-pub use session::{Identity, Session, SessionMiddleware};
-pub use sql::{Field, SqlType, SqlValue};
-pub use viewset_impl::{DefaultViewSet, ViewSet};
 pub use viewset_macros::Entity;
+#[cfg(feature = "web")]
+pub use web::{ApiError, DefaultViewSet, Service, ViewSet};
 
 use serde::Serialize;
 

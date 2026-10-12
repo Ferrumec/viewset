@@ -6,17 +6,19 @@ description = "A Rust, Actix Web–based resource framework that provides conven
 license = "MIT"
 
 [dependencies]
-actix-web = "4.14.1"
+actix-web = {version = "4.14.1", optional = true }
 async-trait = "0.1.92"
-chrono = { version = "0.4.45", features = ["serde"] }
-rust_decimal = "1.42.1"
+chrono = { version = "0.4.45", features = ["serde"],optional = true }
 serde = "1.0.229"
 serde_json = "1.0.151"
 sqlx = { version = "0.9", features = ["postgres", "uuid", "chrono", "rust_decimal", "ipnetwork"] }
 thiserror = "2.0.20"
 tracing = "0.1.44"
-uuid = "1.24.0"
+uuid = { version = "1.24.0", optional = true }
 viewset-macros = { path = "../viewset-macros" }
 ferrumec = "0.4"
-futures-util = "0.3.34"
+futures-util = {version="0.3.34",optional = true}
 ipnetwork = { version = "0.21.1", features = ["serde"] }
+
+[features]
+web = ["actix-web","chrono", "uuid","futures-util"]

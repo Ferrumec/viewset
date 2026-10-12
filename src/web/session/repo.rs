@@ -1,4 +1,4 @@
-use crate::session::Identity;
+use super::Identity;
 use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
 use serde::{Deserialize, Serialize};
