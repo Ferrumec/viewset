@@ -34,7 +34,7 @@ pub use viewset_macros::Entity;
 
 use serde::Serialize;
 
-pub type Filters = std::collections::HashMap<String,String>;
+pub type Filters = std::collections::HashMap<String, String>;
 
 /// Default `UpdateDto` for entities that never specify one. This type has
 /// no values — it can't be constructed — so any code path that would need
@@ -53,4 +53,20 @@ impl<'de> serde::Deserialize<'de> for NoUpdateDto {
             "this resource does not support update",
         ))
     }
+}
+
+#[macro_export]
+macro_rules! filters {
+    // filters!(name, age)
+    ( $( $k:ident ),* $(,)? ) => {
+        &::std::collections::HashMap::<String, String>::from([
+            $( (stringify!($k).to_string(), $k.to_string()) ),*
+        ])
+    };
+    // filters!("name" => name)
+    ( $( $k:expr => $v:expr ),* $(,)? ) => {
+        &::std::collections::HashMap::<String, String>::from([
+            $( (($k).to_string(), ($v).to_string()) ),*
+        ])
+    };
 }

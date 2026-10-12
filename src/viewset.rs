@@ -1,9 +1,9 @@
 use super::entity::Entity;
 use super::error::ApiError;
 use super::service::Service;
+use crate::Filters;
 use actix_web::{HttpResponse, web};
 use std::str::FromStr;
-use crate::Filters;
 type E<V> =
     <<<V as ViewSet>::Service as Service>::Repository as super::repository::Repository>::Entity;
 
