@@ -495,6 +495,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -1268,6 +1269,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a756c3fac73139e83f14c2d742155dd2b78d3ee56597b419a0579b7bdd6dd78"
 
 [[package]]
+name = "ipnetwork"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf370abdafd54d13e54a620e8c3e1145f28e46cc9d704bc6d94414559df41763"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1996,6 +2006,7 @@ dependencies = [
  "hashbrown 0.16.1",
  "hashlink",
  "indexmap",
+ "ipnetwork",
  "log",
  "memchr",
  "percent-encoding",
@@ -2097,6 +2108,7 @@ dependencies = [
  "hex",
  "hkdf",
  "hmac",
+ "ipnetwork",
  "itoa",
  "log",
  "md-5",
@@ -2563,7 +2575,8 @@ dependencies = [
  "async-trait",
  "chrono",
  "ferrumec",
- "moka",
+ "futures-util",
+ "ipnetwork",
  "rust_decimal",
  "serde",
  "serde_json",
@@ -2577,8 +2590,6 @@ dependencies = [
 [[package]]
 name = "viewset-macros"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b7503c2519893f103f8867d59775d3aa1f5ff0d737bb7fb225ec31fad4583d8"
 dependencies = [
  "proc-macro2",
  "quote",
