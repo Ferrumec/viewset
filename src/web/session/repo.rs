@@ -46,3 +46,5 @@ pub struct NewSession {
     pub expires_at: DateTime<Utc>,
     pub ip_address: IpNetwork,
 }
+use crate::DefaultRepo;
+pub type SessionRepo = DefaultRepo<Session>;

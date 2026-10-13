@@ -17,6 +17,7 @@ use std::{
 };
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub struct Identity {
     pub sub: Uuid,
     pub username: String,
