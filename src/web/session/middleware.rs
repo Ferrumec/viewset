@@ -47,7 +47,7 @@ impl SessionMiddleware {
     /// The cookie name defaults to `"session"`.
     pub fn new(cf: impl CacheFactory) -> Self {
         Self {
-            store: cf.new_cache("session_items", Duration::from_mins(30)),
+            store: cf.new_cache("sessions_items", Duration::from_mins(30)),
             cookie_name: "session".into(),
         }
     }

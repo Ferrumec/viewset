@@ -15,6 +15,7 @@ pub struct Session {
     #[entity(sortable)]
     #[entity(skip_create)]
     pub created_at: chrono::DateTime<chrono::Utc>,
+    #[entity(filterable)]
     pub sub: Uuid,
     pub username: String,
     pub email: String,

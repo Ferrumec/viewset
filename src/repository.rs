@@ -207,6 +207,9 @@ pub trait Repository: Send + Sync {
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
             tracing::warn!("failed to set cache: {e}");
         };
+        if let Err(e) = self.list_one_cache().clear().await {
+            tracing::warn!("failed to invalidate list_one cache: {e}");
+        }
         Ok(entity)
     }
 
@@ -236,6 +239,9 @@ pub trait Repository: Send + Sync {
         if let Err(e) = self.cache().delete(id).await {
             tracing::error!("failed to invalidate cache: {e}");
         };
+        if let Err(e) = self.list_one_cache().clear().await {
+            tracing::warn!("failed to invalidate list_one cache: {e}");
+        }
         Ok(entity)
     }
 
@@ -246,6 +252,9 @@ pub trait Repository: Send + Sync {
         if let Err(e) = self.cache().delete(id).await {
             tracing::error!("failed to invalidate cache: {e}");
         };
+        if let Err(e) = self.list_one_cache().clear().await {
+            tracing::warn!("failed to invalidate list_one cache: {e}");
+        }
         Ok(())
     }
 
@@ -261,6 +270,9 @@ pub trait Repository: Send + Sync {
         if let Err(e) = self.cache().delete(id).await {
             tracing::error!("failed to invalidate cache: {e}");
         };
+        if let Err(e) = self.list_one_cache().clear().await {
+            tracing::warn!("failed to invalidate list_one cache: {e}");
+        }
         Ok(())
     }
 
@@ -302,7 +314,7 @@ fn push_filters<E: Entity>(qb: &mut QueryBuilder<Postgres>, query: &Filters, has
             continue; // silently ignore unknown/forbidden filter keys
         }
         qb.push(if *has_where { " AND " } else { " WHERE " });
-        qb.push(format!("{field} = "));
+        qb.push(format!("{field}::text = "));
         qb.push_bind(value.clone());
         *has_where = true;
     }

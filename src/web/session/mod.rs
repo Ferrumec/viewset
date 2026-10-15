@@ -1,4 +1,4 @@
 mod middleware;
 mod repo;
 pub use middleware::{Identity, SessionMiddleware};
-pub use repo::{Session,SessionRepo,NewSession};
+pub use repo::{NewSession, Session, SessionRepo};
