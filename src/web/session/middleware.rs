@@ -1,15 +1,19 @@
+use super::Session;
 use actix_web::{
     Error, HttpMessage,
     body::MessageBody,
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     error,
 };
-
-use super::Session;
+use actix_web::{
+    FromRequest, HttpRequest,
+    dev::Payload,
+    error::ErrorInternalServerError,
+};
 use ferrumec::{CacheFactory, Store};
 use futures_util::future::LocalBoxFuture;
 use std::{
-    future::{Ready, ready},
+    future::{ Ready, ready},
     rc::Rc,
     sync::Arc,
     task::{Context, Poll},
@@ -22,6 +26,20 @@ pub struct Identity {
     pub sub: Uuid,
     pub username: String,
     pub email: String,
+}
+
+impl FromRequest for Identity {
+    type Error = Error;
+    type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+        // Prefer the Filters already constructed by middleware.
+        if let Some(filters) = req.extensions().get::<Identity>() {
+            return Box::pin(ready(Ok(filters.clone())));
+        }
+        tracing::error!("Session middleware not wrapped for {}", req.path());
+        Box::pin(ready(Err(ErrorInternalServerError("Configuration Error"))))
+    }
 }
 
 pub enum IdentityResult {
