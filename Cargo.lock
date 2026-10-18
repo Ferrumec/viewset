@@ -731,14 +731,15 @@ dependencies = [
 
 [[package]]
 name = "ferrumec"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5abe592c2cddddcc095d39e0e8a1c0cb7bee6f1663562994d4cafe03dee34bf3"
+checksum = "8c070a053e728d811efe6e3816dc5dc3e237509640e50ea67f2212be7183a45f"
 dependencies = [
  "actix-files",
  "async-trait",
  "bytes",
  "futures",
+ "futures-util",
  "serde",
  "serde_json",
  "thiserror",
@@ -2441,7 +2442,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "viewset"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "actix-web",
  "async-trait",
