@@ -9,6 +9,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 type ApiResult<T> = Result<T, sqlx::Error>;
+
+/// The client-facing shape returned by every Repository read.
+pub type ResponseDto<R> = <<R as Repository>::Entity as Entity>::ResponseDto;
+
+fn into_dtos<E: Entity>(items: Vec<E>) -> Vec<E::ResponseDto> {
+    items.into_iter().map(Into::into).collect()
+}
 /// Database access only: no validation, authorization, or business rules.
 /// Every method has a default implementation built from `Entity` metadata
 /// via a dynamic `QueryBuilder`; override any of them when the generated
@@ -51,10 +58,13 @@ pub trait Repository: Send + Sync {
         Ok(self.database().begin().await?)
     }
 
-    async fn list(&self, query: &Filters) -> ApiResult<(Vec<Self::Entity>, i64)> {
+    /// Reads return `ResponseDto`, never the raw entity. The caches keep
+    /// storing `Entity` (the DTO isn't required to be `Clone`/`Deserialize`),
+    /// so conversion happens on the way out, for hits and misses alike.
+    async fn list(&self, query: &Filters) -> ApiResult<(Vec<ResponseDto<Self>>, i64)> {
         let key = hash_params(&query);
         if let Ok(Some((items, total))) = self.list_cache().get(&key).await {
-            return Ok((items, total));
+            return Ok((into_dtos::<Self::Entity>(items), total));
         }
         let pagination = PaginationParams::from_query(query);
         let e = <Self::Entity as Entity>::TABLE;
@@ -112,17 +122,16 @@ pub trait Repository: Send + Sync {
             .fetch_one(self.database())
             .await?;
 
-        let results = (items, total);
-        if let Err(e) = self.list_cache().set(&key, results.clone()).await {
+        if let Err(e) = self.list_cache().set(&key, (items.clone(), total)).await {
             tracing::warn!("could not set value in list cache: {e}");
         };
-        Ok(results)
+        Ok((into_dtos::<Self::Entity>(items), total))
     }
 
-    async fn list_one(&self, query: &Filters) -> ApiResult<Self::Entity> {
+    async fn list_one(&self, query: &Filters) -> ApiResult<ResponseDto<Self>> {
         let key = hash_params(&query);
-        if let Ok(Some(items)) = self.list_one_cache().get(&key).await {
-            return Ok(items);
+        if let Ok(Some(item)) = self.list_one_cache().get(&key).await {
+            return Ok(item.into());
         }
         let e = <Self::Entity as Entity>::TABLE;
 
@@ -146,9 +155,9 @@ pub trait Repository: Send + Sync {
             .await?;
 
         if let Err(e) = self.list_one_cache().set(&key, item.clone()).await {
-            tracing::warn!("could not set value in list cache: {e}");
+            tracing::warn!("could not set value in list_one cache: {e}");
         };
-        Ok(item)
+        Ok(item.into())
     }
 
     /// Cache-aside read: a hit returns straight from `cache()` without
@@ -157,15 +166,15 @@ pub trait Repository: Send + Sync {
     /// unconditionally here — unlike the `_in_tx` write paths below,
     /// there's no open transaction that could still roll back and turn
     /// this into a phantom entry.
-    async fn retrieve(&self, id: &<Self::Entity as Entity>::Id) -> ApiResult<Self::Entity> {
+    async fn retrieve(&self, id: &<Self::Entity as Entity>::Id) -> ApiResult<ResponseDto<Self>> {
         if let Ok(Some(hit)) = self.cache().get(&id).await {
-            return Ok(hit);
+            return Ok(hit.into());
         }
         let entity = retrieve_row::<_, Self::Entity>(self.database(), id).await?;
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
             tracing::warn!("failed to set cache: {e}")
         };
-        Ok(entity)
+        Ok(entity.into())
     }
 
     /// Runs as its own auto-committed statement (no explicit `BEGIN`), so

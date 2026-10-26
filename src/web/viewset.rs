@@ -71,8 +71,8 @@ pub trait ViewSet: Send + Sync + 'static {
     {
         async move {
             let id = parse_id::<E<Self>>(&id)?;
-            let entity = self.service().retrieve(id).await?;
-            Ok(HttpResponse::Ok().json(<E<Self> as Entity>::ResponseDto::from(entity)))
+            let dto = self.service().retrieve(id).await?;
+            Ok(HttpResponse::Ok().json(dto))
         }
     }
 

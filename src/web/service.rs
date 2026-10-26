@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use sqlx::{Postgres, Transaction};
 
 type E<S> = <<S as Service>::Repository as Repository>::Entity;
+type R<S> = <E<S> as Entity>::ResponseDto;
 
 /// Business logic layer. Default methods delegate straight to the
 /// repository; override a `before_*`/`after_*` hook to add validation,
@@ -29,7 +30,7 @@ pub trait Service: Send + Sync {
     async fn before_list(&self, _q: &QueryParams) -> ApiResult<()> {
         Ok(())
     }
-    async fn after_list(&self, page: Page<E<Self>>) -> ApiResult<Page<E<Self>>> {
+    async fn after_list(&self, page: Page<R<Self>>) -> ApiResult<Page<R<Self>>> {
         Ok(page)
     }
 
@@ -81,7 +82,7 @@ pub trait Service: Send + Sync {
 
     // ---- default CRUD, built from the hooks above ------------------------
 
-    async fn list(&self, q: QueryParams) -> ApiResult<Page<E<Self>>> {
+    async fn list(&self, q: QueryParams) -> ApiResult<Page<R<Self>>> {
         self.before_list(&q).await?;
         let (items, total) = self.repository().list(&q).await?;
         let pagination = crate::PaginationParams::from_query(&q);
@@ -89,7 +90,7 @@ pub trait Service: Send + Sync {
         self.after_list(page).await
     }
 
-    async fn retrieve(&self, id: <E<Self> as Entity>::Id) -> ApiResult<E<Self>> {
+    async fn retrieve(&self, id: <E<Self> as Entity>::Id) -> ApiResult<R<Self>> {
         Ok(self.repository().retrieve(&id).await?)
     }
 

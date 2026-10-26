@@ -19,7 +19,7 @@ mod repository;
 pub mod web;
 pub use entity::Entity;
 pub use pagination::{Page, PaginationParams, SortDirection};
-pub use repository::{DefaultRepo, Repository};
+pub use repository::{DefaultRepo, Repository, ResponseDto};
 pub use viewset_macros::Entity;
 #[cfg(feature = "web")]
 pub use web::{ApiError, DefaultViewSet, Service, ViewSet};
