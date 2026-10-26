@@ -5,15 +5,11 @@ use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     error,
 };
-use actix_web::{
-    FromRequest, HttpRequest,
-    dev::Payload,
-    error::ErrorInternalServerError,
-};
+use actix_web::{FromRequest, HttpRequest, dev::Payload, error::ErrorInternalServerError};
 use ferrumec::{CacheFactory, Store};
 use futures_util::future::LocalBoxFuture;
 use std::{
-    future::{ Ready, ready},
+    future::{Ready, ready},
     rc::Rc,
     sync::Arc,
     task::{Context, Poll},

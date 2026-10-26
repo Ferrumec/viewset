@@ -34,6 +34,15 @@ pub trait Repository: Send + Sync {
         NoCache::new()
     }
 
+    async fn invalidate_lists(&self) {
+        if let Err(e) = self.list_cache().clear().await {
+            tracing::warn!("list cache: {e}");
+        }
+        if let Err(e) = self.list_one_cache().clear().await {
+            tracing::warn!("list_one cache: {e}");
+        }
+    }
+
     /// Begin a transaction against this repository's pool. Used by the
     /// default `Service::create`/`update`/`delete` implementations so a
     /// mutation and its `before_*`/`after_*` hooks run atomically — if a
@@ -154,7 +163,7 @@ pub trait Repository: Send + Sync {
         }
         let entity = retrieve_row::<_, Self::Entity>(self.database(), id).await?;
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
-            tracing::warn!("failed to set cache: {e}");
+            tracing::warn!("failed to set cache: {e}")
         };
         Ok(entity)
     }
@@ -164,11 +173,9 @@ pub trait Repository: Send + Sync {
     /// to populate the cache with it directly (write-through).
     async fn create(&self, dto: <Self::Entity as Entity>::CreateDto) -> ApiResult<Self::Entity> {
         let entity = Self::Entity::insert(dto, self.database()).await?;
-        if let Err(e) = self.list_cache().clear().await {
-            tracing::warn!("failed to invalidate list cache: {e}");
-        };
+        self.invalidate_lists().await;
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
-            tracing::warn!("failed to set cache: {e}");
+            tracing::warn!("failed to invalidate cache: {e}");
         };
         Ok(entity)
     }
@@ -207,9 +214,7 @@ pub trait Repository: Send + Sync {
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
             tracing::warn!("failed to set cache: {e}");
         };
-        if let Err(e) = self.list_one_cache().clear().await {
-            tracing::warn!("failed to invalidate list_one cache: {e}");
-        }
+        self.invalidate_lists().await;
         Ok(entity)
     }
 
@@ -239,9 +244,7 @@ pub trait Repository: Send + Sync {
         if let Err(e) = self.cache().delete(id).await {
             tracing::error!("failed to invalidate cache: {e}");
         };
-        if let Err(e) = self.list_one_cache().clear().await {
-            tracing::warn!("failed to invalidate list_one cache: {e}");
-        }
+        self.invalidate_lists().await;
         Ok(entity)
     }
 
@@ -252,9 +255,7 @@ pub trait Repository: Send + Sync {
         if let Err(e) = self.cache().delete(id).await {
             tracing::error!("failed to invalidate cache: {e}");
         };
-        if let Err(e) = self.list_one_cache().clear().await {
-            tracing::warn!("failed to invalidate list_one cache: {e}");
-        }
+        self.invalidate_lists().await;
         Ok(())
     }
 
@@ -270,9 +271,7 @@ pub trait Repository: Send + Sync {
         if let Err(e) = self.cache().delete(id).await {
             tracing::error!("failed to invalidate cache: {e}");
         };
-        if let Err(e) = self.list_one_cache().clear().await {
-            tracing::warn!("failed to invalidate list_one cache: {e}");
-        }
+        self.invalidate_lists().await;
         Ok(())
     }
 
