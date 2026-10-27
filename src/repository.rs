@@ -217,9 +217,7 @@ pub trait Repository: Send + Sync {
         dto: <Self::Entity as Entity>::UpdateDto, // now by value
     ) -> ApiResult<Self::Entity> {
         let entity = Self::Entity::update(id, dto, self.database()).await?;
-        if let Err(e) = self.list_cache().clear().await {
-            tracing::warn!("failed to invalidate list cache: {e}");
-        };
+        
         if let Err(e) = self.cache().set(&entity.id(), entity.clone()).await {
             tracing::warn!("failed to set cache: {e}");
         };
