@@ -1,4 +1,3 @@
-use super::Session;
 use actix_web::{
     Error, HttpMessage,
     body::MessageBody,
@@ -6,14 +5,13 @@ use actix_web::{
     error,
 };
 use actix_web::{FromRequest, HttpRequest, dev::Payload, error::ErrorInternalServerError};
-use ferrumec::{CacheFactory, Store};
+use ferrumec::Store;
 use futures_util::future::LocalBoxFuture;
 use std::{
     future::{Ready, ready},
     rc::Rc,
     sync::Arc,
     task::{Context, Poll},
-    time::Duration,
 };
 use uuid::Uuid;
 
@@ -49,7 +47,7 @@ pub enum IdentityResult {
 /// session cookies are rejected with `401 Unauthorized`. Customise the cookie
 /// name with [`cookie_name`](Self::cookie_name).
 pub struct SessionMiddleware {
-    store: Arc<dyn Store<Uuid, Session>>,
+    store: Arc<dyn Store<Uuid, Identity>>,
     cookie_name: String,
 }
 
@@ -59,9 +57,9 @@ impl SessionMiddleware {
     /// A request with no session cookie, an invalid `Uuid`, a missing store
     /// entry, or an expired session is rejected with `401 Unauthorized`.
     /// The cookie name defaults to `"session"`.
-    pub fn new(cf: impl CacheFactory) -> Self {
+    pub fn new(store: Arc<dyn Store<Uuid, Identity>>) -> Self {
         Self {
-            store: cf.new_cache("sessions_items", Duration::from_mins(30)),
+            store,
             cookie_name: "session".into(),
         }
     }
@@ -96,7 +94,7 @@ where
 /// The inner service produced by [`SessionMiddleware`].
 pub struct SessionMiddlewareService<R> {
     service: Rc<R>,
-    store: Arc<dyn Store<Uuid, Session>>,
+    store: Arc<dyn Store<Uuid, Identity>>,
     cookie_name: String,
 }
 
@@ -127,16 +125,13 @@ where
                             return Err(error::ErrorUnauthorized("no session"));
                         }
                     };
-                    let session_data = match store.get(&id).await? {
+                    let identity = match store.get(&id).await? {
                         Some(data) => data,
                         None => {
                             return Err(error::ErrorUnauthorized("no session"));
                         }
                     };
-                    // Reject expired sessions
-                    let IdentityResult::Active(identity) = session_data.identify() else {
-                        return Err(error::ErrorUnauthorized("session expired"));
-                    };
+
                     req.extensions_mut().insert(identity);
                     let res = service.call(req).await?;
                     Ok(res)
