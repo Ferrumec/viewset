@@ -113,37 +113,37 @@ where
     }
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-    let store = self.store.clone();
-    let cookie_name = self.cookie_name.clone();
-    let service = self.service.clone();
+        let store = self.store.clone();
+        let cookie_name = self.cookie_name.clone();
+        let service = self.service.clone();
 
-    Box::pin(async move {
-        let path = req.path().to_owned();
+        Box::pin(async move {
+            let path = req.path().to_owned();
 
-        let cookie = req.cookie(&cookie_name).ok_or_else(|| {
-            tracing::warn!("no session cookie on request to {path}");
-            error::ErrorUnauthorized("no session")
-        })?;
-
-        let id = Uuid::parse_str(cookie.value()).map_err(|e| {
-            tracing::warn!("invalid session id on request to {path}: {e}");
-            error::ErrorUnauthorized("no session")
-        })?;
-
-        let identity = store
-            .get(&id)
-            .await
-            .map_err(|e| {
-                tracing::error!("session store failure on request to {path}: {e}");
-                error::ErrorInternalServerError("server failed to authenticate")
-            })?
-            .ok_or_else(|| {
-                tracing::warn!("session {id} not found for request to {path}");
+            let cookie = req.cookie(&cookie_name).ok_or_else(|| {
+                tracing::warn!("no session cookie on request to {path}");
                 error::ErrorUnauthorized("no session")
             })?;
 
-        req.extensions_mut().insert(identity);
-        service.call(req).await
-    })
-}
+            let id = Uuid::parse_str(cookie.value()).map_err(|e| {
+                tracing::warn!("invalid session id on request to {path}: {e}");
+                error::ErrorUnauthorized("no session")
+            })?;
+
+            let identity = store
+                .get(&id)
+                .await
+                .map_err(|e| {
+                    tracing::error!("session store failure on request to {path}: {e}");
+                    error::ErrorInternalServerError("server failed to authenticate")
+                })?
+                .ok_or_else(|| {
+                    tracing::warn!("session {id} not found for request to {path}");
+                    error::ErrorUnauthorized("no session")
+                })?;
+
+            req.extensions_mut().insert(identity);
+            service.call(req).await
+        })
+    }
 }

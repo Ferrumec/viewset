@@ -19,6 +19,7 @@ viewset-macros = "0.3"
 ferrumec = "0.5"
 futures-util = { version = "0.3.34", optional = true }
 ipnetwork = { version = "0.21.1", features = ["serde"] }
+tokio = "1.54.1"
 
 [features]
 web = ["actix-web","chrono", "uuid","futures-util"]
