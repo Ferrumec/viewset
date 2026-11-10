@@ -67,14 +67,11 @@ pub trait Repository: Send + Sync {
             return Ok((into_dtos::<Self::Entity>(items), total));
         }
         let pagination = PaginationParams::from_query(query);
-        let e = <Self::Entity as Entity>::TABLE;
 
         let mut count_qb: QueryBuilder<Postgres> =
-            QueryBuilder::new(format!("SELECT COUNT(*) FROM {e}"));
-        let mut select_qb: QueryBuilder<Postgres> = QueryBuilder::new(format!(
-            "SELECT {} FROM {e}",
-            <Self::Entity as Entity>::COLUMNS.join(", ")
-        ));
+            QueryBuilder::new(count_prefix::<Self::Entity>());
+        let mut select_qb: QueryBuilder<Postgres> =
+            QueryBuilder::new(select_prefix::<Self::Entity>());
 
         // `select_qb` and `count_qb` are two independent statements and
         // must track their own WHERE state separately — sharing one flag
@@ -133,12 +130,9 @@ pub trait Repository: Send + Sync {
         if let Ok(Some(item)) = self.list_one_cache().get(&key).await {
             return Ok(item.into());
         }
-        let e = <Self::Entity as Entity>::TABLE;
 
-        let mut select_qb: QueryBuilder<Postgres> = QueryBuilder::new(format!(
-            "SELECT {} FROM {e}",
-            <Self::Entity as Entity>::COLUMNS.join(", ")
-        ));
+        let mut select_qb: QueryBuilder<Postgres> =
+            QueryBuilder::new(select_prefix::<Self::Entity>());
 
         // `select_qb` and `count_qb` are two independent statements and
         // must track their own WHERE state separately — sharing one flag
@@ -283,6 +277,12 @@ pub trait Repository: Send + Sync {
     }
 
     async fn exists(&self, id: &<Self::Entity as Entity>::Id) -> ApiResult<bool> {
+        if let Some(sql) = <Self::Entity as Entity>::EXISTS_BY_PK_SQL {
+            return sqlx::query_scalar::<_, bool>(sql)
+                .bind(id)
+                .fetch_one(self.database())
+                .await;
+        }
         let e = <Self::Entity as Entity>::TABLE;
         let pk = <Self::Entity as Entity>::PK_COLUMN;
         let mut qb: QueryBuilder<Postgres> =
@@ -295,9 +295,31 @@ pub trait Repository: Send + Sync {
     }
 
     async fn count(&self) -> ApiResult<i64> {
+        if let Some(sql) = <Self::Entity as Entity>::COUNT_PREFIX {
+            return sqlx::query_scalar::<_, i64>(sql)
+                .fetch_one(self.database())
+                .await;
+        }
         let e = <Self::Entity as Entity>::TABLE;
         let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(format!("SELECT COUNT(*) FROM {e}"));
         Ok(qb.build_query_scalar().fetch_one(self.database()).await?)
+    }
+}
+
+/// `SELECT <columns> FROM <table>` — from the derive's precomputed constant
+/// when present, otherwise built at runtime (hand-written `Entity` impls).
+fn select_prefix<E: Entity>() -> String {
+    match E::SELECT_PREFIX {
+        Some(sql) => sql.to_owned(),
+        None => format!("SELECT {} FROM {}", E::COLUMNS.join(", "), E::TABLE),
+    }
+}
+
+/// `SELECT COUNT(*) FROM <table>`, same precomputed-or-runtime split.
+fn count_prefix<E: Entity>() -> String {
+    match E::COUNT_PREFIX {
+        Some(sql) => sql.to_owned(),
+        None => format!("SELECT COUNT(*) FROM {}", E::TABLE),
     }
 }
 
@@ -349,6 +371,9 @@ where
     E: sqlx::postgres::PgExecutor<'e>,
     Ent: Entity,
 {
+    if let Some(sql) = Ent::SELECT_BY_PK_SQL {
+        return sqlx::query_as::<_, Ent>(sql).bind(id).fetch_one(exec).await;
+    }
     let table = Ent::TABLE;
     let pk = Ent::PK_COLUMN;
     let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(format!(
@@ -372,6 +397,13 @@ where
     E: sqlx::postgres::PgExecutor<'e>,
     Ent: Entity,
 {
+    if let Some(sql) = Ent::DELETE_BY_PK_SQL {
+        let res = sqlx::query(sql).bind(id).execute(exec).await?;
+        if res.rows_affected() == 0 {
+            return Err(sqlx::Error::RowNotFound);
+        }
+        return Ok(());
+    }
     let table = Ent::TABLE;
     let pk = Ent::PK_COLUMN;
 

@@ -77,6 +77,36 @@ pub trait Entity:
     /// `#[derive(Entity)]` from the field's Rust type.
     const SOFT_DELETE_IS_FLAG: bool = false;
 
+    // ---- precomputed SQL (optional optimization hooks) -------------------
+    //
+    // `#[derive(Entity)]` renders these once at compile time so the default
+    // `Repository` methods don't rebuild the same SQL text on every call.
+    // They default to `None`, in which case `Repository` falls back to
+    // building the statement at runtime from `TABLE`/`COLUMNS`/etc. — so a
+    // hand-written `impl Entity` keeps working unchanged. If you set one
+    // manually it must match what the runtime path would have produced.
+
+    /// `SELECT <columns> FROM <table>` — the prefix `list`/`list_one` append
+    /// `WHERE`/`ORDER BY`/`LIMIT` to.
+    #[doc(hidden)]
+    const SELECT_PREFIX: Option<&'static str> = None;
+
+    /// `SELECT COUNT(*) FROM <table>` — prefix for `list`'s count query.
+    #[doc(hidden)]
+    const COUNT_PREFIX: Option<&'static str> = None;
+
+    /// Complete `SELECT ... WHERE <pk> = $1 [AND <soft-delete filter>]`.
+    #[doc(hidden)]
+    const SELECT_BY_PK_SQL: Option<&'static str> = None;
+
+    /// Complete `DELETE`, or soft-delete `UPDATE`, `... WHERE <pk> = $1`.
+    #[doc(hidden)]
+    const DELETE_BY_PK_SQL: Option<&'static str> = None;
+
+    /// Complete `SELECT EXISTS(SELECT 1 FROM <table> WHERE <pk> = $1)`.
+    #[doc(hidden)]
+    const EXISTS_BY_PK_SQL: Option<&'static str> = None;
+
     /// Extract the primary key from an instance (used after insert/update).
     fn id(&self) -> Self::Id;
     fn insert<'e, E>(
