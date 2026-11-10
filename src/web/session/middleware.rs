@@ -48,7 +48,7 @@ pub enum IdentityResult {
 /// name with [`cookie_name`](Self::cookie_name).
 pub struct SessionMiddleware {
     store: Arc<dyn Store<Uuid, Identity>>,
-    cookie_name: String,
+    cookie_name: Arc<str>,
 }
 
 impl SessionMiddleware {
@@ -65,7 +65,7 @@ impl SessionMiddleware {
     }
 
     /// Override the session cookie name (default: `"session"`).
-    pub fn cookie_name(mut self, name: impl Into<String>) -> Self {
+    pub fn cookie_name(mut self, name: &str) -> Self {
         self.cookie_name = name.into();
         self
     }
@@ -95,7 +95,7 @@ where
 pub struct SessionMiddlewareService<R> {
     service: Rc<R>,
     store: Arc<dyn Store<Uuid, Identity>>,
-    cookie_name: String,
+    cookie_name: Arc<str>,
 }
 
 impl<S, B> Service<ServiceRequest> for SessionMiddlewareService<S>
