@@ -87,31 +87,31 @@ impl SessionRepo {
         let (tx, mut rx) = mpsc::channel(100);
         let value = db.clone();
         tokio::spawn(async move {
-        let mut map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
+            let mut map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
 
-        let mut ticker = tokio::time::interval(std::time::Duration::from_secs(300));
-        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-        loop {
-            tokio::select! {
-                Some((key, val)) = rx.recv() => {
-                    map.insert(key, val);
-                }
-                _ = ticker.tick() => {
-                    for (key, val) in map.drain() {
-                        if let Err(e) = sqlx::query("update sessions set idle_until = $1 where id = $2")
-                            .bind(val)
-                            .bind(key)
-                            .execute(&value)
-                            .await
-                        {
-                            tracing::warn!("failed to persist session idle_until: {e}");
+            let mut ticker = tokio::time::interval(std::time::Duration::from_secs(300));
+            ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            loop {
+                tokio::select! {
+                    Some((key, val)) = rx.recv() => {
+                        map.insert(key, val);
+                    }
+                    _ = ticker.tick() => {
+                        for (key, val) in map.drain() {
+                            if let Err(e) = sqlx::query("update sessions set idle_until = $1 where id = $2")
+                                .bind(val)
+                                .bind(key)
+                                .execute(&value)
+                                .await
+                            {
+                                tracing::warn!("failed to persist session idle_until: {e}");
+                            }
                         }
                     }
+                    else => break,
                 }
-                else => break,
             }
-        }
-    });
+        });
         Self {
             db,
             cache: cache_factory.new_cache(

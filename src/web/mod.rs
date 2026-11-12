@@ -8,4 +8,4 @@ pub use service::{DefaultService, Service};
 pub use session::{
     Identity, NewSession, Session, SessionMiddleware, SessionRepo, create_session_middleware,
 };
-pub use viewset::{DefaultViewSet, ViewSet};
+pub use viewset::{DefaultViewSet, ProtectedView, ViewSet};
